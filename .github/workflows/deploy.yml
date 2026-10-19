@@ -1,93 +1,82 @@
-  # Publica o ReadTrack no GitHub Pages a cada push na branch main.
-  # A publicação só acontece se TODAS as etapas anteriores passarem
-  # (variáveis, lint, testes, build e conferência da pasta dist).
-  #
-  # Antes do primeiro uso (veja o README, etapa C):
-  #   1. Settings → Pages → Build and deployment → Source: "GitHub Actions".
-  #   2. Settings → Secrets and variables → Actions → Variables:
-  #        VITE_SUPABASE_URL                 (ex.: https://abcd.supabase.co)
-  #        VITE_SUPABASE_PUBLISHABLE_KEY     (chave PÚBLICA: sb_publishable_… ou anon)
-  #      NUNCA cadastre a chave service_role/secret.
-  name: Publicar no GitHub Pages
+# Publica o ReadTrack no GitHub Pages a cada push na branch main.
+name: Publicar no GitHub Pages
 
-  on:
-    push:
-      branches: [main]
-    workflow_dispatch:
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-  permissions:
-    contents: read
-    pages: write
-    id-token: write
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
-  concurrency:
-    group: pages
-    cancel-in-progress: false
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
-  jobs:
-    build:
-      runs-on: ubuntu-latest
-      env:
-        VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
-      steps:
-        - name: Baixar o código
-          uses: actions/checkout@v4
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
 
-        - name: Instalar o Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version-file: .nvmrc
+      - name: Instalar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
 
-        - name: Conferir as variáveis do Supabase (só chave pública)
-      env:
-        VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
-        VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
-      run: node scripts/check-env.mjs --require
+      - name: Conferir as variáveis do Supabase (só chave pública)
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
+        run: node scripts/check-env.mjs --require
 
-        - name: Instalar dependências
-          # Com package-lock.json (recomendado), "npm ci" instala exatamente as mesmas versões.
-          run: |
-            if [ -f package-lock.json ]; then
-              npm ci
-            else
-              echo "::warning::Sem package-lock.json: rode 'npm install' no seu computador e faça commit do lockfile para instalações reproduzíveis."
-              npm install --no-audit --no-fund
-            fi
+      - name: Instalar dependências
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            echo "::warning::Sem package-lock.json: rode 'npm install' no seu computador e faça commit do lockfile para instalações reproduzíveis."
+            npm install --no-audit --no-fund
+          fi
 
-        - name: Lint
-          run: npm run lint
+      - name: Lint
+        run: npm run lint
 
-        - name: Testes
-          run: npm test
+      - name: Testes
+        run: npm test
 
-        - name: Configurar o GitHub Pages
-          id: pages
-          uses: actions/configure-pages@v5
+      - name: Configurar o GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
 
-        - name: Build de produção
-          env:
-            # "/readtrack" num repositório comum; vazio num site de usuário ou domínio próprio.
-            BASE_PATH: ${{ steps.pages.outputs.base_path }}/
-          run: npm run build
+      - name: Build de produção
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+        run: npm run build
 
-        - name: Conferir a pasta dist
-          run: node scripts/check-dist.mjs dist
+      - name: Conferir a pasta dist
+        run: node scripts/check-dist.mjs dist
 
-        - name: Enviar o site
-          uses: actions/upload-pages-artifact@v3
-          with:
-            path: dist
+      - name: Enviar o site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
 
-    deploy:
-      needs: build
-      runs-on: ubuntu-latest
-      environment:
-        name: github-pages
-        url: ${{ steps.deployment.outputs.page_url }}
-      steps:
-        - name: Publicar
-          id: deployment
-          uses: actions/deploy-pages@v4
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
