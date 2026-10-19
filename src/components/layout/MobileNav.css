@@ -1,0 +1,169 @@
+.mobile-nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--line);
+  background: rgba(15, 19, 32, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.mobile-nav__list {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  height: var(--mobile-nav-height);
+}
+
+.mobile-nav__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: var(--mobile-nav-height);
+  border: 0;
+  background: transparent;
+  color: var(--color-text-faint);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav__tab.is-active {
+  color: var(--color-text);
+}
+
+.mobile-nav__tab.is-active svg {
+  color: var(--color-accent);
+}
+
+.mobile-nav__primary-slot {
+  display: flex;
+  justify-content: center;
+}
+
+.mobile-nav__primary {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-top: -18px;
+  border: 4px solid var(--ink-800);
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  box-shadow: 0 8px 20px -6px rgba(214, 168, 90, 0.5);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nav__primary {
+  position: relative;
+}
+
+.mobile-nav__live {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--ink-800);
+  border-radius: 50%;
+  background: var(--moss-500);
+}
+
+.mobile-nav__primary.is-active {
+  background: var(--brass-400);
+}
+
+/* Folha "Mais" */
+.mobile-sheet {
+  width: 100%;
+  max-width: 100%;
+  max-height: 80dvh;
+  margin: auto 0 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.mobile-sheet::backdrop {
+  background: rgba(8, 10, 18, 0.6);
+}
+
+.mobile-sheet[open] {
+  animation: sheet-up var(--duration-base) var(--ease-out);
+}
+
+.mobile-sheet__content {
+  padding: var(--space-2) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+
+.mobile-sheet__header {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  height: 40px;
+}
+
+.mobile-sheet__handle {
+  width: 40px;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: var(--radius-full);
+  background: var(--line-strong);
+}
+
+.mobile-sheet__close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.mobile-sheet__list {
+  display: grid;
+  gap: 2px;
+}
+
+.mobile-sheet__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 52px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.mobile-sheet__link svg {
+  color: var(--color-text-muted);
+}
+
+.mobile-sheet__link.is-active {
+  background: var(--color-surface-raised);
+}
+
+.mobile-sheet__link.is-active svg {
+  color: var(--color-accent);
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}

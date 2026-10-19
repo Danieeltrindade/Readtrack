@@ -1,0 +1,46 @@
+# Dependências e build
+node_modules
+dist
+dist-ssr
+*.local
+.vite
+
+# Vercel / Netlify (se usar uma dessas hospedagens)
+.vercel
+.netlify
+
+# Variáveis de ambiente: nunca versione credenciais.
+# Só o modelo (.env.example, sem valores reais) vai para o Git.
+.env
+.env.*
+!.env.example
+
+# DADOS PESSOAIS — nunca vão para o repositório público.
+# Guarde seus backups e históricos numa pasta fora do projeto ou em uma
+# destas (ignoradas pelo Git).
+/imports/
+/dados-pessoais/
+/private/
+/backups/
+readtrack-backup-*.json
+historico-*.json
+historico-*.sql
+!src/services/historyImport/fixtures/historico-exemplo.json
+
+# Arquivos de banco/exportações locais
+*.sqlite
+*.db
+*.dump
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# Editor e sistema
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db

@@ -1,0 +1,75 @@
+.metric-strip {
+  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
+  overflow: hidden;
+}
+
+/* Cada célula desenha a linha da direita e de baixo (sombra de 1px); a
+   margem negativa + overflow escondem as linhas da borda externa. Assim as
+   divisórias funcionam com qualquer quantidade de colunas, sem "buracos". */
+.metric-strip__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--metric-min, 168px), 1fr));
+  margin: 0 -1px -1px 0;
+}
+
+.metric-strip__item {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
+  padding: var(--space-5);
+  box-shadow:
+    1px 0 0 var(--line),
+    0 1px 0 var(--line);
+}
+
+.metric-strip__item dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.metric-strip__item dt svg {
+  color: var(--color-text-faint);
+}
+
+.metric-strip__item.is-highlight dt svg {
+  color: var(--brass-400);
+}
+
+.metric-strip__item dd {
+  margin: 0;
+}
+
+.metric-strip__value {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  line-height: 1.2;
+}
+
+.metric-strip__item.is-muted .metric-strip__value {
+  color: var(--color-text-faint);
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+}
+
+.metric-strip__detail {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 767px) {
+  .metric-strip__list {
+    --metric-min: 140px;
+  }
+
+  .metric-strip__item {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .metric-strip__value {
+    font-size: var(--text-lg);
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "readtrack",
+  "private": true,
+  "version": "1.6.0",
+  "description": "Acompanhamento pessoal de leitura: biblioteca, cronômetro, histórico com observações, estatísticas, metas e conquistas. Site web responsivo em React + Vite, com contas no Supabase (Auth + PostgreSQL + RLS), demonstração pública com dados fictícios e publicação no GitHub Pages.",
+  "keywords": [
+    "react",
+    "vite",
+    "leitura",
+    "reading-tracker",
+    "supabase",
+    "postgresql",
+    "row-level-security",
+    "github-pages",
+    "recharts",
+    "portfolio"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "test": "node --test",
+    "check": "npm run lint && npm test && npm run build && npm run check:dist",
+    "check:env": "node scripts/check-env.mjs",
+    "check:dist": "node scripts/check-dist.mjs dist",
+    "history:backup": "node scripts/build-history-backup.mjs",
+    "history:sql": "node scripts/build-history-sql.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.75.0",
+    "lucide-react": "^0.525.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router": "^7.6.0",
+    "recharts": "^3.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^9.30.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "vite": "^7.0.0"
+  }
+}

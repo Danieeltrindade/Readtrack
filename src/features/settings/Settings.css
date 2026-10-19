@@ -1,0 +1,150 @@
+.settings {
+  max-width: 880px;
+}
+
+.settings__row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.settings__icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-text-muted);
+}
+
+.settings__text {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 62ch;
+  font-size: var(--text-sm);
+}
+
+.settings__muted {
+  color: var(--color-text-faint);
+}
+
+.settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-left: calc(20px + var(--space-4));
+}
+
+
+@media (max-width: 767px) {
+  .settings__actions {
+    padding-left: 0;
+  }
+
+  .settings__actions .btn {
+    flex: 1 1 100%;
+  }
+}
+
+.settings__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+}
+
+.settings__name .field {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+/* O botão alinha com o campo, não com a dica abaixo dele */
+.settings__name .btn {
+  margin-bottom: 26px;
+}
+
+.settings__choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line);
+}
+
+.settings__import-error ul {
+  margin: var(--space-2) 0;
+  padding-left: var(--space-5);
+  list-style: disc;
+}
+
+.settings__import-error p + p {
+  margin-top: var(--space-2);
+}
+
+.settings__danger {
+  border-color: rgba(224, 122, 106, 0.3);
+}
+
+.settings__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--rust-500);
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .settings__name .btn {
+    width: 100%;
+    margin-bottom: 0;
+  }
+}
+
+/* ---------- Conta e migração ---------- */
+.settings__migration {
+  display: grid;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line);
+}
+
+.settings__subtitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.settings__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-height: 44px;
+  font-size: var(--text-sm);
+}
+
+.settings__check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--brass-500);
+}
+
+.settings__notice {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(132, 169, 140, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--moss-soft);
+  font-size: var(--text-sm);
+}
+
+.settings__list {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  list-style: disc;
+}
+
+#conta {
+  scroll-margin-top: var(--space-6);
+}
+
+/* E-mails longos quebram em vez de vazar do cartão em telas estreitas */
+.settings__email {
+  overflow-wrap: anywhere;
+}

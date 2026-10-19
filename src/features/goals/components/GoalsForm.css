@@ -1,0 +1,33 @@
+.goals-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.goals-form__goal {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.goals-form__goal .field {
+  max-width: 240px;
+}
+
+.goals-form__actions {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .goals-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .goals-form__goal .field {
+    max-width: none;
+  }
+
+  .goals-form__actions .btn {
+    width: 100%;
+  }
+}

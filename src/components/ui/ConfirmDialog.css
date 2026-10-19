@@ -1,0 +1,101 @@
+.confirm-dialog {
+  width: min(440px, calc(100vw - 2 * var(--space-4)));
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-float);
+}
+
+.confirm-dialog::backdrop {
+  background: rgba(8, 10, 18, 0.66);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-dialog[open] {
+  animation: dialog-in var(--duration-base) var(--ease-out);
+}
+
+.confirm-dialog__body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6);
+}
+
+.confirm-dialog__title {
+  font-size: var(--text-lg);
+}
+
+.confirm-dialog__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* ---------- Modal (formulários e detalhes) ---------- */
+.modal--md {
+  width: min(560px, calc(100vw - 2 * var(--space-4)));
+}
+
+.modal {
+  max-height: calc(100dvh - 2 * var(--space-4));
+  overflow-y: auto;
+}
+
+.modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.modal__close {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -8px -8px 0 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.modal__close:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.modal .confirm-dialog__actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 479px) {
+  .modal .confirm-dialog__body {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  .modal .confirm-dialog__actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+.final-review {
+  display: grid;
+  gap: var(--space-4);
+}

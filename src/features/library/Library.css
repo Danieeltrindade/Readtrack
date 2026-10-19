@@ -1,0 +1,271 @@
+/* ---------- Barra de pesquisa e ordenação ---------- */
+.library__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.library__search {
+  position: relative;
+  flex: 1 1 320px;
+}
+
+.library__search .input {
+  padding-left: 44px;
+  padding-right: 44px;
+  border-radius: var(--radius-full);
+}
+
+/* Remove o "x" nativo do Chrome: usamos o nosso botão, que é acessível */
+.library__search .input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.library__search-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  color: var(--color-text-faint);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.library__search-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+  transform: translateY(-50%);
+}
+
+.library__search-clear:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+.library__sort {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.library__sort-label {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.library__sort .select {
+  width: auto;
+  min-width: 210px;
+  border-radius: var(--radius-full);
+}
+
+/* ---------- Filtros ---------- */
+.library__filters {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: calc(var(--space-4) * -1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.filter-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 38px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.filter-chip:hover {
+  color: var(--color-text);
+}
+
+.filter-chip[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--brass-soft);
+  color: var(--color-text);
+}
+
+.filter-chip__count {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+/* ---------- Grade ---------- */
+.library__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: var(--space-8) var(--space-6);
+}
+
+.book-card {
+  position: relative;
+}
+
+.book-card__link {
+  display: grid;
+  gap: var(--space-4);
+  text-decoration: none;
+}
+
+.book-card .book-cover {
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.book-card__link:hover .book-cover {
+  transform: translateY(-4px);
+}
+
+.book-card__info {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-1);
+}
+
+.book-card__title {
+  margin-top: var(--space-1);
+  font-size: var(--text-md);
+  line-height: 1.2;
+}
+
+.book-card__author {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.book-card__progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+/* Espaço para o botão de menu não cobrir o título da capa gerada */
+@media (min-width: 768px) {
+  .book-card .book-cover__generated {
+    padding-right: 26%;
+  }
+}
+
+/* Menu no canto da capa, fora do link (sem elementos interativos aninhados) */
+.book-card__menu {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.book-card__menu .menu__trigger {
+  width: 34px;
+  height: 34px;
+  border-color: rgba(237, 230, 214, 0.14);
+  background: rgba(15, 19, 32, 0.72);
+  color: var(--paper-100);
+  backdrop-filter: blur(6px);
+}
+
+.book-card__menu .menu__trigger:hover,
+.book-card__menu .menu__trigger[aria-expanded='true'] {
+  background: var(--ink-600);
+}
+
+/* Celular: lista com capa pequena — mais fácil de rolar com o polegar */
+@media (max-width: 767px) {
+  .filter-chip {
+    min-height: 44px;
+  }
+
+  /* nowrap: num flex de várias linhas a largura da linha segue o conteúdo
+     (o <select> comprido), não a tela. */
+  .library__toolbar {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .library__search {
+    flex-basis: auto;
+  }
+
+  .library__sort .select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .library__filters {
+    margin: 0 calc(var(--space-4) * -1);
+    padding: 0 var(--space-4);
+  }
+
+  .library__grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .library__grid li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .book-card__link {
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    padding: var(--space-4) 0;
+  }
+
+  .book-card .book-cover {
+    font-size: 8px;
+  }
+
+  .book-card__link:hover .book-cover {
+    transform: none;
+  }
+
+  .book-card__info {
+    padding-right: var(--space-10);
+  }
+
+  .book-card__menu {
+    top: 50%;
+    right: -6px;
+    transform: translateY(-50%);
+  }
+
+  .book-card__menu .menu__trigger {
+    width: 40px;
+    height: 40px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--color-text-muted);
+  }
+}
+
+.library__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.book-card__origin {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}

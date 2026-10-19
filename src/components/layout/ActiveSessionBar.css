@@ -1,0 +1,124 @@
+.session-bar {
+  position: sticky;
+  top: var(--space-4);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--content-max);
+  margin: var(--space-4) auto 0;
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: rgba(34, 42, 63, 0.92);
+  box-shadow: var(--shadow-float);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+@media (min-width: 768px) {
+  .session-bar {
+    width: calc(100% - 2 * var(--space-8));
+  }
+}
+
+.session-bar__link {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: 40px;
+  text-decoration: none;
+}
+
+.session-bar__dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper-700);
+}
+
+.session-bar.is-running .session-bar__dot {
+  background: var(--moss-500);
+  animation: pulse 2s ease-out infinite;
+}
+
+.session-bar__text {
+  display: flex;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.session-bar__label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.session-bar__title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-bar__clock {
+  color: var(--brass-400);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.session-bar__toggle {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.session-bar__toggle:hover {
+  background: var(--brass-400);
+}
+
+/* Celular: pílula fixa acima da barra de navegação */
+@media (max-width: 767px) {
+  .session-bar {
+    position: fixed;
+    top: auto;
+    right: var(--space-3);
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + var(--space-3));
+    left: var(--space-3);
+    margin: 0;
+  }
+
+  .session-bar__text {
+    flex-direction: column;
+    gap: 0;
+    line-height: 1.25;
+  }
+
+  .session-bar__label {
+    font-size: var(--text-xs);
+  }
+
+  /* Conteúdo não fica escondido atrás da pílula */
+  .app-shell:has(.session-bar) .app-shell__main {
+    padding-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom) + 76px);
+  }
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 8px rgba(132, 169, 140, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(132, 169, 140, 0);
+  }
+}

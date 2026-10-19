@@ -1,0 +1,168 @@
+.book-form-page {
+  max-width: 980px;
+}
+
+.book-form {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--space-10);
+  align-items: start;
+}
+
+.book-form__preview {
+  position: sticky;
+  top: var(--space-8);
+}
+
+.book-form__fields {
+  display: grid;
+  gap: var(--space-8);
+  max-width: 620px;
+}
+
+.book-form__group {
+  display: grid;
+  gap: var(--space-5);
+  margin: 0;
+  padding: 0 0 var(--space-8);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.book-form__legend {
+  margin-bottom: var(--space-5);
+  padding: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 500;
+}
+
+.book-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.book-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.cover-field {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.cover-field__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cover-field__uploaded {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 767px) {
+  .book-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .book-form__preview {
+    position: static;
+    width: 112px;
+    margin: 0 auto;
+  }
+
+  .book-form__preview .book-cover {
+    font-size: 12px;
+  }
+
+  .book-form__fields {
+    gap: var(--space-6);
+  }
+
+  .book-form__group {
+    padding-bottom: var(--space-6);
+  }
+
+  /* Datas e números lado a lado só se couberem */
+  .book-form__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Ações fixas acima da barra de navegação: sempre ao alcance do polegar */
+  .book-form__actions {
+    position: sticky;
+    bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom));
+    z-index: 5;
+    margin: 0 calc(var(--space-4) * -1);
+    padding: var(--space-3) var(--space-4);
+    border-top: 1px solid var(--line);
+    background: rgba(19, 24, 38, 0.94);
+    backdrop-filter: blur(10px);
+  }
+
+  .book-form__actions .btn {
+    flex: 1;
+  }
+}
+
+@media (min-width: 420px) and (max-width: 767px) {
+  .book-form__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.book-form__muted {
+  margin-top: calc(var(--space-2) * -1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.book-form__notice {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(132, 169, 140, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--moss-soft);
+  font-size: var(--text-sm);
+}
+
+.book-form__notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--moss-500);
+}
+
+/* Telas estreitas (320px): grids e fieldsets não podem crescer pelo
+   tamanho mínimo do conteúdo (ex.: o campo de data nativo). */
+.book-form__fields,
+.book-form__group {
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+}
+
+.book-form input[type='date'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Rótulos longos ("Adicionar aos concluídos") quebram linha em vez de
+   empurrar o "Cancelar" para fora da tela em 320px. */
+@media (max-width: 379px) {
+  .book-form__actions {
+    flex-wrap: wrap;
+  }
+
+  .book-form__actions .btn {
+    flex: 1 1 auto;
+  }
+}

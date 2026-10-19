@@ -1,0 +1,134 @@
+/* Telas de conta (login, cadastro, carregamento): fora do layout principal. */
+.auth {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: var(--space-6);
+  min-height: 100dvh;
+  padding: clamp(var(--space-6), 8vh, var(--space-12)) var(--space-4) var(--space-12);
+  outline: none;
+}
+
+.auth__brand .brand {
+  font-size: var(--text-lg);
+}
+
+.auth__card {
+  display: grid;
+  gap: var(--space-5);
+  width: min(100%, 440px);
+  padding: var(--space-8);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.auth__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.auth__lead {
+  margin-top: calc(var(--space-3) * -1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.auth__form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.auth__submit {
+  width: 100%;
+}
+
+.auth__notice {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid rgba(132, 169, 140, 0.35);
+  border-radius: var(--radius-sm);
+  background: var(--moss-soft);
+  font-size: var(--text-sm);
+}
+
+.auth__notice:focus {
+  outline: 2px solid var(--moss-500);
+  outline-offset: 2px;
+}
+
+.auth__switch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.auth__link {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brass-400);
+  font-size: var(--text-sm);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.auth__local {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.auth__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (max-width: 479px) {
+  .auth__card {
+    padding: var(--space-6) var(--space-5);
+  }
+
+  .auth__actions .btn,
+  .auth__local .btn {
+    width: 100%;
+  }
+}
+
+.auth__icon {
+  color: var(--brass-400);
+}
+
+/* Links para o início e a demonstração, abaixo do cartão. */
+.auth__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-6);
+  font-size: var(--text-sm);
+}
+
+.auth__footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  color: var(--color-text-muted);
+  text-underline-offset: 3px;
+}
+
+.auth__footer a:hover {
+  color: var(--color-text);
+}
+
+.auth__switch a.auth__link {
+  display: inline-flex;
+  align-items: center;
+}

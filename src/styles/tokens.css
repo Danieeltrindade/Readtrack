@@ -1,0 +1,121 @@
+/*
+ * ReadTrack — tokens de design
+ * Conceito: "biblioteca à noite". Fundo azul-tinta, texto cor de papel,
+ * luz de luminária em latão como acento. Cores de status vêm das capas:
+ * musgo para concluído, latão para lendo, ameixa para quero ler.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Cores base */
+  --ink-900: #0f1320;
+  --ink-800: #131826; /* fundo do app */
+  --ink-700: #1a2032; /* superfícies */
+  --ink-600: #222a3f; /* superfícies elevadas, hover */
+  --ink-500: #2e3752; /* bordas fortes */
+  --line: rgba(237, 230, 214, 0.09);
+  --line-strong: rgba(237, 230, 214, 0.16);
+
+  --paper-100: #ede6d6; /* texto principal */
+  --paper-300: #c9c0aa;
+  /* Contrastes WCAG medidos sobre os fundos ink-900…ink-600:
+     paper-500 ≥ 5,9:1 e paper-700 ≥ 4,6:1 (AA para texto pequeno). */
+  --paper-500: #b0a996; /* texto secundário */
+  --paper-700: #989384; /* texto terciário (dicas, legendas) */
+
+  --brass-400: #e2b96f;
+  --brass-500: #d6a85a; /* acento principal */
+  --brass-600: #b88b3f;
+  --brass-soft: rgba(214, 168, 90, 0.14);
+
+  --moss-500: #84a98c;
+  --moss-soft: rgba(132, 169, 140, 0.15);
+  --plum-500: #b48aa8;
+  --plum-soft: rgba(180, 138, 168, 0.15);
+  --rust-500: #e07a6a;
+  --rust-soft: rgba(224, 122, 106, 0.14);
+
+  /* Papéis semânticos */
+  --color-bg: var(--ink-800);
+  --color-surface: var(--ink-700);
+  --color-surface-raised: var(--ink-600);
+  --color-text: var(--paper-100);
+  --color-text-muted: var(--paper-500);
+  --color-text-faint: var(--paper-700);
+  --color-accent: var(--brass-500);
+  --color-accent-contrast: #1b1406;
+  --color-success: var(--moss-500);
+  --color-danger: var(--rust-500);
+  --color-focus: var(--brass-400);
+
+  /* Tipografia */
+  --font-serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  /* Escala modular 1.25 (terça maior) */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.375rem;
+  --text-xl: 1.75rem;
+  --text-2xl: 2.25rem;
+  --text-3xl: 2.875rem;
+
+  /* Espaçamento (base 4px) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Raios: livros têm canto quase reto; painéis são mais macios */
+  --radius-book: 3px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 999px;
+
+  --shadow-book: -2px 0 0 rgba(0, 0, 0, 0.25) inset, 0 10px 24px -8px rgba(0, 0, 0, 0.55),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-float: 0 18px 40px -12px rgba(5, 8, 16, 0.7);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 140ms;
+  --duration-base: 240ms;
+
+  /* Gráficos — paleta validada para o fundo escuro (faixa de luminosidade,
+     croma, separação para daltonismo e contraste ≥ 3:1). Cada métrica tem
+     sempre a mesma cor em todas as telas. */
+  --chart-pages: #be8a2c;
+  --chart-time: #5a8be0;
+  --chart-new-pages: #4fa37a;
+  --chart-muted: #4a5470;
+  --chart-grid: rgba(237, 230, 214, 0.07);
+  --chart-axis: var(--paper-700);
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --sidebar-rail-width: 76px;
+  --content-max: 1180px;
+  --mobile-nav-height: 64px;
+  --mobile-header-height: 56px;
+}
+
+/* Telas grandes (≥ 1600px): mais largura útil para grids e gráficos */
+@media (min-width: 1600px) {
+  :root {
+    --content-max: 1380px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-base: 0ms;
+  }
+}

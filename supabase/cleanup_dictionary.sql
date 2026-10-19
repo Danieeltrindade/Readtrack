@@ -1,0 +1,11 @@
+-- =====================================================================
+-- ReadTrack 1.3 — remoção do histórico do dicionário (OPCIONAL)
+--
+-- O dicionário saiu do app na versão 1.3. Bancos criados com as versões
+-- 1.1 ou 1.2 ainda têm a tabela public.dictionary_history, que o app não lê
+-- nem grava mais (ela continua protegida pela RLS enquanto existir).
+--
+-- Este script APAGA essa tabela e todas as buscas guardadas nela, de todos
+-- os usuários. Não há como desfazer. Rode no SQL Editor só se tiver certeza.
+-- =====================================================================
+drop table if exists public.dictionary_history;

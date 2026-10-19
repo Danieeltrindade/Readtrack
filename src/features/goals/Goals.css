@@ -1,0 +1,420 @@
+/* ---------- Cartões de meta ---------- */
+.goal-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.goal-status {
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(237, 230, 214, 0.06);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.goal-status--done {
+  background: var(--moss-soft);
+  color: var(--moss-500);
+}
+
+.goal-status--in-progress {
+  background: var(--brass-soft);
+  color: var(--brass-400);
+}
+
+.goal-card__main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.goal-card__ring {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+}
+
+.goal-card__value {
+  color: var(--color-text-muted);
+}
+
+.goal-card__value strong {
+  color: var(--color-text);
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: 500;
+}
+
+.goal-card__summary {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.goal-card__empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.goal-card__empty > svg {
+  color: var(--color-text-faint);
+}
+
+.goal-card__empty > div {
+  flex: 1;
+  min-width: 180px;
+}
+
+.goal-card__footer {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.goal-card__history-label {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+/* Bolinhas dos últimos 7 dias */
+.day-dots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-1);
+}
+
+.day-dots li {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.day-dots__dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+}
+
+.day-dots li.is-partial .day-dots__dot {
+  border-color: rgba(214, 168, 90, 0.5);
+  background: var(--brass-soft);
+}
+
+.day-dots li.is-met .day-dots__dot {
+  border-color: var(--moss-500);
+  background: var(--moss-500);
+  color: #0f1a12;
+}
+
+.day-dots__label {
+  color: var(--color-text-faint);
+  font-size: 11px;
+}
+
+/* Barras das últimas 8 semanas */
+.week-bars {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  align-items: end;
+  gap: var(--space-2);
+  height: 96px;
+  padding-bottom: 18px;
+}
+
+.week-bars li {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  height: 100%;
+  align-items: flex-end;
+}
+
+.week-bars__bar {
+  width: min(28px, 100%);
+  border-radius: 4px 4px 0 0;
+  background: var(--chart-muted);
+}
+
+.week-bars li.is-met .week-bars__bar {
+  background: var(--chart-pages);
+}
+
+.week-bars li.is-current .week-bars__bar {
+  outline: 1px dashed var(--brass-400);
+  outline-offset: 2px;
+}
+
+.week-bars__label {
+  position: absolute;
+  bottom: -18px;
+  color: var(--color-text-faint);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.week-bars__target {
+  position: absolute;
+  right: 0;
+  left: 0;
+  border-top: 1px dashed var(--paper-500);
+  pointer-events: none;
+}
+
+/* ---------- Conquistas ---------- */
+.achievements {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.achievements__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.achievements__header h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xl);
+}
+
+.achievements__header h2 svg {
+  color: var(--brass-400);
+}
+
+.achievements__header p {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: var(--space-3);
+}
+
+.achievement {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+/* Já tem nível desbloqueado: um toque de latão, como nas conquistas antigas. */
+.achievement.has-unlocked {
+  border-color: rgba(214, 168, 90, 0.3);
+  background:
+    linear-gradient(135deg, rgba(214, 168, 90, 0.08), transparent 60%),
+    var(--color-surface);
+}
+
+.achievement.is-complete {
+  border-color: rgba(132, 169, 140, 0.4);
+  background:
+    linear-gradient(135deg, rgba(132, 169, 140, 0.12), transparent 60%),
+    var(--color-surface);
+}
+
+.achievement.is-blocked {
+  opacity: 0.85;
+}
+
+.achievement__ring {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: center;
+  gap: var(--space-1);
+}
+
+.achievement__icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-surface-raised);
+  color: var(--color-text-faint);
+  transition: background var(--duration-base) var(--ease-out), color var(--duration-base) var(--ease-out);
+}
+
+.achievement.has-unlocked .achievement__icon {
+  background: var(--brass-soft);
+  color: var(--brass-400);
+}
+
+.achievement.is-complete .achievement__icon {
+  background: var(--brass-500);
+  color: var(--color-accent-contrast);
+}
+
+.achievement__percent {
+  display: inline-flex;
+  align-items: center;
+  min-height: 16px;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+.achievement.is-complete .achievement__percent {
+  color: var(--moss-500);
+}
+
+.achievement__body {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.achievement__category {
+  color: var(--brass-400);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.achievement__title {
+  font-size: var(--text-md);
+}
+
+.achievement__description {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.achievement__progress-text {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.achievement__progress-text strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.achievement__link {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--brass-400);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Trilha de níveis: um traço por nível (preenchido = desbloqueado). */
+.achievement__levels {
+  display: flex;
+  gap: 4px;
+  margin-top: var(--space-2);
+}
+
+.achievement__levels li {
+  flex: 1;
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: rgba(237, 230, 214, 0.1);
+}
+
+.achievement__levels li.is-unlocked {
+  background: var(--brass-500);
+}
+
+.achievement__levels li.is-next {
+  background: rgba(214, 168, 90, 0.35);
+}
+
+.achievement__history {
+  margin-top: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.achievement__history summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.achievement__history ul {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--space-1);
+}
+
+.achievement__history li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.achievement__history li svg {
+  flex-shrink: 0;
+  color: var(--moss-500);
+}
+
+.achievement__history li span {
+  margin-left: auto;
+  color: var(--color-text-faint);
+}
+
+.achievements__recent {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.achievements__recent strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.achievements__recent-date {
+  color: var(--color-text-faint);
+}
+
+.achievements__note {
+  max-width: 78ch;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 899px) {
+  .goal-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .goal-cards {
+    gap: var(--space-4);
+  }
+
+  .goal-card__main {
+    gap: var(--space-4);
+  }
+
+  .achievement-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

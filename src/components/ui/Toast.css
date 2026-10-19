@@ -1,0 +1,80 @@
+.toast-region {
+  position: fixed;
+  right: var(--space-6);
+  bottom: var(--space-6);
+  z-index: 60;
+  display: grid;
+  gap: var(--space-2);
+  width: min(380px, calc(100vw - 2 * var(--space-4)));
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--ink-600);
+  box-shadow: var(--shadow-float);
+  font-size: var(--text-sm);
+  pointer-events: auto;
+  animation: toast-in var(--duration-base) var(--ease-out);
+}
+
+.toast > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.toast p {
+  flex: 1;
+}
+
+.toast--success > svg {
+  color: var(--color-success);
+}
+
+.toast--error > svg {
+  color: var(--color-danger);
+}
+
+.toast--info > svg {
+  color: var(--color-accent);
+}
+
+.toast__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.toast__close:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+}
+
+/* Celular: avisos no topo, para nunca cobrirem a barra inferior,
+   a pílula da sessão ou os botões fixos dos formulários. */
+@media (max-width: 767px) {
+  .toast-region {
+    top: calc(var(--mobile-header-height) + env(safe-area-inset-top) + var(--space-2));
+    right: var(--space-3);
+    bottom: auto;
+    left: var(--space-3);
+    width: auto;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}

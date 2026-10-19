@@ -1,0 +1,170 @@
+.sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  height: 100dvh;
+  padding: var(--space-6) var(--space-4);
+}
+
+.sidebar__brand {
+  padding: 0 var(--space-3);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  text-decoration: none;
+}
+
+.brand__mark {
+  width: 30px;
+  height: 30px;
+}
+
+.brand__name {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sidebar__nav {
+  flex: 1;
+}
+
+.sidebar__nav ul,
+.sidebar__footer ul {
+  display: grid;
+  gap: 2px;
+}
+
+.sidebar__link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.sidebar__link:hover {
+  background: var(--ink-700);
+  color: var(--color-text);
+}
+
+/* Item ativo: marcador de latão como uma fita de livro */
+.sidebar__link.is-active {
+  background: var(--ink-700);
+  color: var(--color-text);
+}
+
+.sidebar__link.is-active::before {
+  content: '';
+  position: absolute;
+  left: -16px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-accent);
+}
+
+.sidebar__link.is-active svg {
+  color: var(--color-accent);
+}
+
+.sidebar__link--primary {
+  margin: var(--space-2) 0;
+  border: 1px solid rgba(214, 168, 90, 0.35);
+  color: var(--brass-400);
+}
+
+.sidebar__link--primary:hover {
+  background: var(--brass-soft);
+  color: var(--brass-400);
+}
+
+.sidebar__live {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--moss-500);
+}
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .sidebar__live {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+.sidebar__footer {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--line);
+}
+
+.sidebar__storage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+/* Tablet: trilho de ícones */
+@media (min-width: 768px) and (max-width: 1099px) {
+  .sidebar {
+    align-items: center;
+    padding: var(--space-5) var(--space-3);
+  }
+
+  .sidebar__brand {
+    padding: 0;
+  }
+
+  .brand__name,
+  .sidebar__label,
+  .sidebar__storage span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .sidebar__link {
+    justify-content: center;
+    width: 48px;
+    padding: 0;
+  }
+
+  .sidebar__link.is-active::before {
+    left: -14px;
+  }
+
+  .sidebar__storage {
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+.sidebar__storage.is-error {
+  color: var(--rust-500);
+}

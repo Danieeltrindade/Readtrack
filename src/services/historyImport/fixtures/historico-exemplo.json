@@ -1,0 +1,64 @@
+{
+  "format": "readtrack-history-import",
+  "version": 1,
+  "description": "EXEMPLO FICTÍCIO para testes e documentação: um histórico anotado à mão, no formato aceito por Histórico → Importar histórico. Não são dados de uma pessoa real.",
+  "timezone": "America/Sao_Paulo",
+  "pages": "inclusive",
+  "books": [
+    {
+      "title": "O Guarani",
+      "sessions": [
+        { "date": "03/05", "endDate": null, "firstPage": 1, "lastPage": 10, "start": "19:00", "end": "19:15", "duration": "15:00", "notes": "", "vocabulary": [] },
+        {
+          "date": "04/05",
+          "endDate": null,
+          "firstPage": 11,
+          "lastPage": 20,
+          "start": "19:10",
+          "end": "19:22",
+          "duration": "13:40",
+          "notes": "",
+          "vocabulary": [
+            { "term": "Aimoré", "meaning": "Povo indígena citado no romance." },
+            { "term": "Paquete", "meaning": "Navio que levava passageiros e correspondência." }
+          ]
+        },
+        { "date": "04/05", "endDate": null, "firstPage": 21, "lastPage": 30, "start": "20:00", "end": "20:14", "duration": "14:00", "notes": "Capítulo da cascata.", "vocabulary": [] },
+        { "date": "04/05", "endDate": null, "firstPage": 31, "lastPage": 36, "start": "12:05", "end": "12:15", "duration": "10:00", "notes": "", "vocabulary": [] },
+        {
+          "date": "04/05",
+          "endDate": "05/05",
+          "firstPage": 37,
+          "lastPage": 70,
+          "start": "23:30",
+          "end": "00:25",
+          "duration": "55:10",
+          "notes": "Li até depois da meia-noite.",
+          "vocabulary": [
+            { "term": "Fidalgo", "meaning": "Pessoa de família nobre." },
+            { "term": "Ermo", "meaning": "Lugar deserto, sem moradores." },
+            { "term": "Altivo", "meaning": "Orgulhoso, que se mantém de cabeça erguida." }
+          ]
+        },
+        { "date": "05/05", "endDate": null, "firstPage": 71, "lastPage": 80, "start": "18:00", "end": "18:12", "duration": "12:00", "notes": "", "vocabulary": [] }
+      ]
+    },
+    {
+      "title": "Senhora",
+      "sessions": [
+        { "date": "10/05", "endDate": null, "firstPage": 5, "lastPage": 40, "start": "18:00", "end": "18:50", "duration": "50:00", "notes": "As primeiras páginas são prefácio.", "vocabulary": [] },
+        {
+          "date": "11/05",
+          "endDate": "12/05",
+          "firstPage": 41,
+          "lastPage": 100,
+          "start": "23:10",
+          "end": "01:20",
+          "duration": "2:10:00",
+          "notes": "",
+          "vocabulary": [{ "term": "Dote", "meaning": "Bens que a noiva levava para o casamento." }]
+        }
+      ]
+    }
+  ]
+}
