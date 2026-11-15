@@ -5,7 +5,7 @@
 Site web responsivo (celular, tablet e desktop) feito com React + Vite, com contas e banco de dados no Supabase (Auth + PostgreSQL + Row Level Security) e publicação automática no GitHub Pages. Versão **1.7.0**.
 
 <!-- Depois de publicar, troque pelo endereço real (veja a Etapa D): -->
-**Site:** _https://SEU-USUARIO.github.io/SEU-REPOSITORIO/_
+**Site:** _https://danieeltrindade.github.io/Readtrack/app_
 
 Um único endereço, três caminhos:
 
