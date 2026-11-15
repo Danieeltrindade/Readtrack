@@ -117,7 +117,7 @@
   display: flex;
   gap: var(--space-3);
   padding: var(--space-4);
-  border: 1px solid rgba(132, 169, 140, 0.35);
+  border: 1px solid color-mix(in srgb, var(--moss-500) 35%, transparent);
   border-radius: var(--radius-md);
   background: var(--moss-soft);
   font-size: var(--text-sm);

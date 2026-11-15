@@ -47,7 +47,7 @@
 
 .auth__notice {
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(132, 169, 140, 0.35);
+  border: 1px solid color-mix(in srgb, var(--moss-500) 35%, transparent);
   border-radius: var(--radius-sm);
   background: var(--moss-soft);
   font-size: var(--text-sm);

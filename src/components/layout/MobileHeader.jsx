@@ -7,11 +7,12 @@ import { SYNC_STATE } from '../../services/sync/remoteSync.js';
 import { usePaths } from '../../hooks/useWorkspace.js';
 import { calculateStreakFromLedger } from '../../utils/stats.js';
 import { Brand } from './Brand.jsx';
+import { Avatar } from '../ui/Avatar.jsx';
 
 /** Barra superior compacta do celular: marca + sequência de dias. */
 export function MobileHeader() {
   const ROUTES = usePaths(); // caminhos do espaço atual (/app ou /demo)
-  const { ledger } = useData();
+  const { ledger, settings } = useData();
   const streak = useMemo(() => calculateStreakFromLedger(ledger), [ledger]);
   const backend = useBackend();
   const syncError = backend.mode === 'remote' && backend.syncStatus?.state === SYNC_STATE.ERROR;
@@ -47,6 +48,9 @@ export function MobileHeader() {
             <span className="tabular">{streak.current}</span>
           </p>
         )}
+        <Link to={ROUTES.settings} className="mobile-header__avatar" aria-label="Perfil e aparência">
+          <Avatar src={settings.avatarUrl} name={settings.userName || backend.user?.email || ''} size={32} />
+        </Link>
       </div>
     </header>
   );

@@ -149,7 +149,7 @@
 }
 
 .change--down {
-  background: rgba(237, 230, 214, 0.06);
+  background: color-mix(in srgb, var(--paper-100) 6%, transparent);
   color: var(--color-text-muted);
 }
 
@@ -356,7 +356,7 @@
 }
 
 .compare-item__bar--before {
-  background: rgba(237, 230, 214, 0.22);
+  background: color-mix(in srgb, var(--paper-100) 22%, transparent);
 }
 
 .compare-item__change {
@@ -411,7 +411,7 @@
 
 .compare-list__swatch--before {
   margin-left: var(--space-2);
-  background: rgba(237, 230, 214, 0.22);
+  background: color-mix(in srgb, var(--paper-100) 22%, transparent);
 }
 
 @media (max-width: 767px) {
@@ -440,4 +440,85 @@
   .statistics .segmented--periods button:nth-child(n + 4) {
     grid-column: span 3;
   }
+}
+
+/* ---------- Por formato (1.7.0) ---------- */
+.format-split__bar {
+  display: flex;
+  gap: 4px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+}
+
+.format-split__part {
+  min-width: 6px;
+  border-radius: var(--radius-full);
+}
+
+.format-split__part--print {
+  background: var(--format-print);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--format-print) 50%, transparent);
+}
+
+.format-split__part--digital {
+  background: var(--format-digital);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--format-digital) 50%, transparent);
+}
+
+.format-split__part--audio {
+  background: var(--format-audio);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--format-audio) 50%, transparent);
+}
+
+.format-split__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.format-split__list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+}
+
+.format-split__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--fc) 15%, transparent);
+  color: var(--fc-text);
+}
+
+.format-split__name {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.format-split__value {
+  display: grid;
+  text-align: right;
+}
+
+.format-split__value strong {
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.format-split__value small,
+.format-split__note,
+.format-split__empty {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }

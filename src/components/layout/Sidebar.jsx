@@ -5,6 +5,7 @@ import { useData } from '../../hooks/useData.js';
 import { useBackend } from '../../hooks/useBackend.js';
 import { SYNC_STATE } from '../../services/sync/remoteSync.js';
 import { Brand } from './Brand.jsx';
+import { Avatar } from '../ui/Avatar.jsx';
 import './Sidebar.css';
 
 /**
@@ -13,7 +14,7 @@ import './Sidebar.css';
  * e aparece como dica ao passar o mouse).
  */
 export function Sidebar() {
-  const { storage, activeSession } = useData();
+  const { storage, activeSession, settings } = useData();
   const backend = useBackend();
   const navItems = useNavItems();
   const paths = usePaths();
@@ -44,7 +45,13 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
-        <StorageStatus storage={storage} backend={backend} />
+        <NavLink to={paths.settings} className="sidebar__profile" title="Perfil e aparência">
+          <Avatar src={settings.avatarUrl} name={settings.userName || backend.user?.email || ''} size={36} />
+          <span className="sidebar__profile-text">
+            <span className="sidebar__profile-name">{settings.userName || (backend.mode === 'demo' ? 'Visitante' : 'Seu perfil')}</span>
+            <StorageStatus storage={storage} backend={backend} />
+          </span>
+        </NavLink>
       </div>
     </aside>
   );
@@ -78,10 +85,10 @@ function SidebarLink({ item, live = false }) {
 function StorageStatus({ storage, backend }) {
   if (backend.mode === 'demo') {
     return (
-      <p className="sidebar__storage" title="Demonstração: dados fictícios guardados só neste navegador, separados de qualquer conta">
+      <span className="sidebar__storage" title="Demonstração: dados fictícios guardados só neste navegador, separados de qualquer conta">
         <FlaskConical size={14} aria-hidden="true" />
         <span>Demonstração · dados fictícios</span>
-      </p>
+      </span>
     );
   }
   if (backend.mode === 'remote') {
@@ -90,16 +97,16 @@ function StorageStatus({ storage, backend }) {
     const label = error ? 'Erro ao salvar na conta' : state === SYNC_STATE.IDLE || !state ? 'Salvo na sua conta' : 'Salvando na conta…';
     const Icon = error ? CloudAlert : Cloud;
     return (
-      <p className={`sidebar__storage ${error ? 'is-error' : ''}`} title={backend.user?.email}>
+      <span className={`sidebar__storage ${error ? 'is-error' : ''}`} title={backend.user?.email}>
         <Icon size={14} aria-hidden="true" />
         <span>{label}</span>
-      </p>
+      </span>
     );
   }
   return (
-    <p className="sidebar__storage" title={storage.canPersist ? 'Modo local: os dados ficam só neste navegador' : storage.message ?? undefined}>
+    <span className="sidebar__storage" title={storage.canPersist ? 'Modo local: os dados ficam só neste navegador' : storage.message ?? undefined}>
       {storage.canPersist ? <HardDrive size={14} aria-hidden="true" /> : <CloudOff size={14} aria-hidden="true" />}
       <span>{storage.canPersist ? 'Modo local · neste navegador' : 'Dados não estão sendo salvos'}</span>
-    </p>
+    </span>
   );
 }

@@ -177,8 +177,8 @@
 .book-card__menu .menu__trigger {
   width: 34px;
   height: 34px;
-  border-color: rgba(237, 230, 214, 0.14);
-  background: rgba(15, 19, 32, 0.72);
+  border-color: color-mix(in srgb, var(--paper-100) 14%, transparent);
+  background: color-mix(in srgb, var(--color-bg) 72%, transparent);
   color: var(--paper-100);
   backdrop-filter: blur(6px);
 }

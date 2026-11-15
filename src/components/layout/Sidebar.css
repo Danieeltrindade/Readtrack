@@ -59,25 +59,15 @@
 }
 
 .sidebar__link:hover {
-  background: var(--ink-700);
+  background: var(--color-surface-raised);
   color: var(--color-text);
 }
 
-/* Item ativo: marcador de latão como uma fita de livro */
+/* Item ativo: pílula com o brilho da cor de destaque */
 .sidebar__link.is-active {
-  background: var(--ink-700);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--color-text);
-}
-
-.sidebar__link.is-active::before {
-  content: '';
-  position: absolute;
-  left: -16px;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--color-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 24px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .sidebar__link.is-active svg {
@@ -86,7 +76,7 @@
 
 .sidebar__link--primary {
   margin: var(--space-2) 0;
-  border: 1px solid rgba(214, 168, 90, 0.35);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   color: var(--brass-400);
 }
 
@@ -167,4 +157,48 @@
 
 .sidebar__storage.is-error {
   color: var(--rust-500);
+}
+
+/* Perfil (foto + nome + onde os dados são salvos) */
+.sidebar__profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar__profile:hover,
+.sidebar__profile.is-active {
+  background: var(--color-surface-raised);
+}
+
+.sidebar__profile-text {
+  display: grid;
+  min-width: 0;
+}
+
+.sidebar__profile-name {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__profile .sidebar__storage {
+  padding: 0;
+}
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .sidebar__profile {
+    justify-content: center;
+    padding: var(--space-1);
+  }
+
+  .sidebar__profile-text {
+    display: none;
+  }
 }

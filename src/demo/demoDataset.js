@@ -524,7 +524,7 @@ function createFormatBooks(base) {
 
   // Audiobook "O Guarani": no caminho para casa (dias úteis), nos últimos 40 dias.
   const audioId = id('book', 'o-guarani');
-  const audioDuration = 14 * 3600 + 20 * 60;
+  const audioDuration = 19 * 3600 + 40 * 60;
   const speed = 1.25;
   let position = 0;
   let count = 0;
@@ -536,7 +536,7 @@ function createFormatBooks(base) {
     const durationSeconds = Math.round((22 + random() * 18) * 60);
     const finishedAt = new Date(startedAt.getTime() + durationSeconds * 1000);
     const start = position;
-    position = Math.min(audioDuration - 3600, position + Math.round(durationSeconds * speed));
+    position = Math.min(audioDuration - 600, position + Math.round(durationSeconds * speed));
     count += 1;
     const notesFor = {
       2: { notes: 'Narração muito boa nas cenas de floresta.', annotations: [{ type: 'quote', text: 'De um dos cabeços da Serra dos Órgãos desliza um fio de água.', seconds: 95 }] },

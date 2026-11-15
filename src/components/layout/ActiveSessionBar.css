@@ -10,7 +10,7 @@
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-full);
-  background: rgba(34, 42, 63, 0.92);
+  background: color-mix(in srgb, var(--color-surface-raised) 92%, transparent);
   box-shadow: var(--shadow-float);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -116,9 +116,9 @@
 
 @keyframes pulse {
   70% {
-    box-shadow: 0 0 0 8px rgba(132, 169, 140, 0);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--moss-500) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(132, 169, 140, 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--moss-500) 0%, transparent);
   }
 }

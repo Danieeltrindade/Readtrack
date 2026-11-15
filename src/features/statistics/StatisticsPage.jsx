@@ -19,6 +19,7 @@ import {
   getStatsSessions,
 } from '../../utils/stats.js';
 import { buildLedger, summarizeRange } from '../../utils/ledger.js';
+import { FormatSplit } from './components/FormatSplit.jsx';
 import {
   addDays,
   fromDateKey,
@@ -254,6 +255,8 @@ export default function StatisticsPage() {
       </div>
 
       <MetricStrip label="Números do período" items={items} />
+
+      <FormatSplit sessions={sessions} books={realBooks} range={range} />
 
       <div className="statistics__charts">
         <Panel title={mainTitle('Páginas')}>

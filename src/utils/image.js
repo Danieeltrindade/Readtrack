@@ -39,3 +39,30 @@ export async function fileToCoverDataUrl(file, { maxWidth = 360, maxHeight = 540
     URL.revokeObjectURL(objectUrl);
   }
 }
+
+/**
+ * Foto de perfil: recorte quadrado no centro, 256 × 256 px, JPEG (~15–40 KB).
+ * Fica pequena o bastante para ser guardada no perfil da conta.
+ */
+export async function fileToAvatarDataUrl(file, { size = 256, quality = 0.82 } = {}) {
+  if (!file) throw new Error('Nenhum arquivo selecionado.');
+  if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) throw new Error('Escolha uma imagem JPG, PNG ou WebP.');
+  if (file.size > MAX_FILE_BYTES) throw new Error('A imagem deve ter no máximo 10 MB.');
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = await loadImage(objectUrl);
+    const side = Math.min(image.naturalWidth, image.naturalHeight);
+    const sx = (image.naturalWidth - side) / 2;
+    const sy = (image.naturalHeight - side) / 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#15161d';
+    context.fillRect(0, 0, size, size);
+    context.drawImage(image, sx, sy, side, side, 0, 0, size, size);
+    return canvas.toDataURL('image/jpeg', quality);
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}

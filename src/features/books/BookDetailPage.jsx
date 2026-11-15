@@ -34,10 +34,11 @@ import {
   getSessionKind,
   hasMeasurableProgress,
 } from '../../utils/formats.js';
-import { NOTEBOOK_LABELS, NOTEBOOK_SINGULAR, collectNotebook, countByType, formatEntryAnchor } from '../../utils/annotations.js';
+import { NOTEBOOK_SINGULAR, collectNotebook, countByType, formatEntryAnchor } from '../../utils/annotations.js';
 import './BookDetail.css';
 
 const RECENT_LIMIT = 8;
+const NOTE_PLURALS = { summary: 'resumos', quote: 'citações', word: 'palavras', idea: 'ideias', question: 'dúvidas' };
 
 export default function BookDetailPage() {
   const ROUTES = usePaths(); // caminhos do espaço atual (/app ou /demo)
@@ -351,7 +352,7 @@ export default function BookDetailPage() {
           <p className="book-detail__notebook-counts">
             {['summary', 'quote', 'word', 'idea', 'question']
               .filter((t) => notebookCounts[t] > 0)
-              .map((t) => `${notebookCounts[t]} ${NOTEBOOK_LABELS[t].toLowerCase()}`)
+              .map((t) => `${notebookCounts[t]} ${notebookCounts[t] === 1 ? NOTEBOOK_SINGULAR[t].toLowerCase() : NOTE_PLURALS[t]}`)
               .join(' · ')}
             {notebookCounts.open > 0 && ` · ${notebookCounts.open} ${notebookCounts.open === 1 ? 'dúvida em aberto' : 'dúvidas em aberto'}`}
           </p>

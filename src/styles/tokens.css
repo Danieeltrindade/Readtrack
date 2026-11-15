@@ -1,39 +1,53 @@
 /*
- * ReadTrack — tokens de design
- * Conceito: "biblioteca à noite". Fundo azul-tinta, texto cor de papel,
- * luz de luminária em latão como acento. Cores de status vêm das capas:
- * musgo para concluído, latão para lendo, ameixa para quero ler.
+ * ReadTrack — tokens de design (1.7.0: "escuro e moderno")
+ * Fundo quase preto, superfícies grafite, texto claro e um acento que o
+ * usuário escolhe (padrão violeta). Formatos têm cor própria: físico
+ * (âmbar), e-book/PDF (azul) e audiobook (rosa), também configuráveis.
+ *
+ * O site aplica no <html>:
+ *   data-theme="dark" | "light"         (tema; "sistema" é resolvido no JS)
+ *   --accent, --accent-contrast         (cor de destaque e o texto sobre ela)
+ *   --format-print/-digital/-audio      (cores dos formatos)
+ * Os nomes antigos (--brass-*, --ink-*, --paper-*) continuam existindo e
+ * apontam para os valores novos, então todas as telas mudam juntas.
  */
 :root {
   color-scheme: dark;
 
-  /* Cores base */
-  --ink-900: #0f1320;
-  --ink-800: #131826; /* fundo do app */
-  --ink-700: #1a2032; /* superfícies */
-  --ink-600: #222a3f; /* superfícies elevadas, hover */
-  --ink-500: #2e3752; /* bordas fortes */
-  --line: rgba(237, 230, 214, 0.09);
-  --line-strong: rgba(237, 230, 214, 0.16);
+  /* Escolhas do usuário (padrões) */
+  --accent: #8b7cff;
+  --accent-contrast: #0b0c10;
+  --format-print: #ffb054;
+  --format-digital: #5cc8ff;
+  --format-audio: #ff6fa8;
 
-  --paper-100: #ede6d6; /* texto principal */
-  --paper-300: #c9c0aa;
-  /* Contrastes WCAG medidos sobre os fundos ink-900…ink-600:
-     paper-500 ≥ 5,9:1 e paper-700 ≥ 4,6:1 (AA para texto pequeno). */
-  --paper-500: #b0a996; /* texto secundário */
-  --paper-700: #989384; /* texto terciário (dicas, legendas) */
+  /* Superfícies */
+  --ink-900: #08090c;
+  --ink-800: #0b0c10; /* fundo do site */
+  --ink-700: #15161d; /* cartões */
+  --ink-600: #1c1e27; /* cartões elevados, hover */
+  --ink-500: #333645; /* bordas fortes */
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.13);
 
-  --brass-400: #e2b96f;
-  --brass-500: #d6a85a; /* acento principal */
-  --brass-600: #b88b3f;
-  --brass-soft: rgba(214, 168, 90, 0.14);
+  /* Texto (contraste AA sobre #0b0c10…#1c1e27) */
+  --paper-100: #f2f3f7;
+  --paper-300: #c5c8d4;
+  --paper-500: #a3a7b7;
+  --paper-700: #8c90a1;
 
-  --moss-500: #84a98c;
-  --moss-soft: rgba(132, 169, 140, 0.15);
-  --plum-500: #b48aa8;
-  --plum-soft: rgba(180, 138, 168, 0.15);
-  --rust-500: #e07a6a;
-  --rust-soft: rgba(224, 122, 106, 0.14);
+  /* Acento (nomes antigos mantidos) */
+  --brass-400: color-mix(in srgb, var(--accent) 72%, white);
+  --brass-500: var(--accent);
+  --brass-600: color-mix(in srgb, var(--accent) 80%, black);
+  --brass-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+
+  --moss-500: #7ef0c1;
+  --moss-soft: rgba(126, 240, 193, 0.13);
+  --plum-500: #c9a7ff;
+  --plum-soft: rgba(201, 167, 255, 0.14);
+  --rust-500: #ff7a85;
+  --rust-soft: rgba(255, 122, 133, 0.14);
 
   /* Papéis semânticos */
   --color-bg: var(--ink-800);
@@ -42,15 +56,23 @@
   --color-text: var(--paper-100);
   --color-text-muted: var(--paper-500);
   --color-text-faint: var(--paper-700);
-  --color-accent: var(--brass-500);
-  --color-accent-contrast: #1b1406;
+  --color-accent: var(--accent);
+  --color-accent-text: color-mix(in srgb, var(--accent) 70%, white);
+  --color-accent-contrast: var(--accent-contrast);
   --color-success: var(--moss-500);
   --color-danger: var(--rust-500);
-  --color-focus: var(--brass-400);
+  --color-focus: color-mix(in srgb, var(--accent) 70%, white);
+  --glow-accent: 0 0 28px color-mix(in srgb, var(--accent) 35%, transparent);
+
+  /* Texto na cor de cada formato (mais claro no escuro, mais escuro no claro) */
+  --format-print-text: color-mix(in srgb, var(--format-print) 80%, white);
+  --format-digital-text: color-mix(in srgb, var(--format-digital) 80%, white);
+  --format-audio-text: color-mix(in srgb, var(--format-audio) 80%, white);
 
   /* Tipografia */
-  --font-serif: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-sans: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif; /* títulos */
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-serif);
 
   /* Escala modular 1.25 (terça maior) */
   --text-xs: 0.75rem;
@@ -73,35 +95,27 @@
   --space-10: 2.5rem;
   --space-12: 3rem;
 
-  /* Raios: livros têm canto quase reto; painéis são mais macios */
-  --radius-book: 3px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
+  /* Raios */
+  --radius-book: 4px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
   --radius-full: 999px;
 
-  --shadow-book: -2px 0 0 rgba(0, 0, 0, 0.25) inset, 0 10px 24px -8px rgba(0, 0, 0, 0.55),
-    0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-float: 0 18px 40px -12px rgba(5, 8, 16, 0.7);
+  --shadow-book: inset 4px 0 0 rgba(0, 0, 0, 0.28), 0 14px 30px -10px rgba(0, 0, 0, 0.6);
+  --shadow-float: 0 22px 48px -14px rgba(0, 0, 0, 0.75);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-fast: 140ms;
   --duration-base: 240ms;
 
-  /* Gráficos — paleta validada para o fundo escuro (faixa de luminosidade,
-     croma, separação para daltonismo e contraste ≥ 3:1). Cada métrica tem
-     sempre a mesma cor em todas as telas. */
-  --chart-pages: #be8a2c;
-  --chart-time: #5a8be0;
-  --chart-new-pages: #4fa37a;
-  --chart-muted: #4a5470;
-  --chart-grid: rgba(237, 230, 214, 0.07);
+  /* Gráficos: cada métrica tem sempre a mesma cor em todas as telas. */
+  --chart-pages: #b9b0ff;
+  --chart-time: #5cc8ff;
+  --chart-new-pages: #7ef0c1;
+  --chart-muted: #333645;
+  --chart-grid: rgba(255, 255, 255, 0.06);
   --chart-axis: var(--paper-700);
-
-  /* Formatos de leitura (as Configurações podem trocar estas cores) */
-  --format-print: #ffb054;
-  --format-digital: #5cc8ff;
-  --format-audio: #ff6fa8;
 
   /* Tipos de anotação do caderno */
   --note-summary: #d5d7e0;
@@ -116,6 +130,58 @@
   --content-max: 1180px;
   --mobile-nav-height: 64px;
   --mobile-header-height: 56px;
+}
+
+/* ---------- Tema claro ---------- */
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --ink-900: #e6e8ef;
+  --ink-800: #f4f5f9;
+  --ink-700: #ffffff;
+  --ink-600: #eef0f5;
+  --ink-500: #c9ccd6;
+  --line: rgba(15, 18, 30, 0.08);
+  --line-strong: rgba(15, 18, 30, 0.16);
+
+  --paper-100: #14151b;
+  --paper-300: #3a3d4a;
+  --paper-500: #4c5060;
+  --paper-700: #5f6373;
+
+  --brass-400: color-mix(in srgb, var(--accent) 70%, black);
+  --brass-600: color-mix(in srgb, var(--accent) 75%, black);
+  --brass-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+
+  --moss-500: #0e8a5f;
+  --moss-soft: rgba(14, 138, 95, 0.12);
+  --plum-500: #7b4fd1;
+  --plum-soft: rgba(123, 79, 209, 0.12);
+  --rust-500: #c8323f;
+  --rust-soft: rgba(200, 50, 63, 0.1);
+
+  --color-accent-text: color-mix(in srgb, var(--accent) 62%, black);
+  --color-focus: color-mix(in srgb, var(--accent) 70%, black);
+  --glow-accent: 0 8px 24px color-mix(in srgb, var(--accent) 25%, transparent);
+
+  --format-print-text: color-mix(in srgb, var(--format-print) 55%, black);
+  --format-digital-text: color-mix(in srgb, var(--format-digital) 55%, black);
+  --format-audio-text: color-mix(in srgb, var(--format-audio) 55%, black);
+
+  --shadow-book: inset 4px 0 0 rgba(0, 0, 0, 0.18), 0 12px 24px -12px rgba(20, 22, 40, 0.35);
+  --shadow-float: 0 22px 48px -18px rgba(20, 22, 40, 0.3);
+
+  --chart-pages: #6e5cf0;
+  --chart-time: #1f8fd0;
+  --chart-new-pages: #0e8a5f;
+  --chart-muted: #d5d8e1;
+  --chart-grid: rgba(15, 18, 30, 0.07);
+
+  --note-summary: #5f6373;
+  --note-quote: #6e5cf0;
+  --note-word: #1f8fd0;
+  --note-idea: #c47a12;
+  --note-question: #0e8a5f;
 }
 
 /* Telas grandes (≥ 1600px): mais largura útil para grids e gráficos */

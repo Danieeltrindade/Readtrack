@@ -3,7 +3,7 @@
   width: 100%;
   overflow: hidden;
   border-radius: var(--radius-full);
-  background: rgba(237, 230, 214, 0.08);
+  background: color-mix(in srgb, var(--paper-100) 8%, transparent);
 }
 
 .progress-bar--sm {
@@ -37,7 +37,7 @@
 
 .progress-ring__track {
   fill: none;
-  stroke: rgba(237, 230, 214, 0.08);
+  stroke: color-mix(in srgb, var(--paper-100) 8%, transparent);
 }
 
 .progress-ring__value {

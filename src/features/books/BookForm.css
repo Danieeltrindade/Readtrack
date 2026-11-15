@@ -105,7 +105,7 @@
     margin: 0 calc(var(--space-4) * -1);
     padding: var(--space-3) var(--space-4);
     border-top: 1px solid var(--line);
-    background: rgba(19, 24, 38, 0.94);
+    background: color-mix(in srgb, var(--color-bg) 94%, transparent);
     backdrop-filter: blur(10px);
   }
 
@@ -130,7 +130,7 @@
   display: flex;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(132, 169, 140, 0.35);
+  border: 1px solid color-mix(in srgb, var(--moss-500) 35%, transparent);
   border-radius: var(--radius-sm);
   background: var(--moss-soft);
   font-size: var(--text-sm);

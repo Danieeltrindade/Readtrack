@@ -111,7 +111,7 @@
 }
 
 .source-badge--manual {
-  border-color: rgba(180, 138, 168, 0.45);
+  border-color: color-mix(in srgb, var(--plum-500) 45%, transparent);
   background: var(--plum-soft);
   color: var(--plum-500);
 }
@@ -134,7 +134,7 @@
 
 .session-dialog__divergence {
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(214, 168, 90, 0.35);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
   border-radius: var(--radius-sm);
   background: var(--brass-soft);
   font-size: var(--text-sm);

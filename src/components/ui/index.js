@@ -14,3 +14,4 @@ export { Field, ChoiceGroup } from './Field.jsx';
 export { Menu } from './Menu.jsx';
 export { MetricStrip } from './MetricStrip.jsx';
 export { FormatBadge, FormatIcon } from './FormatBadge.jsx';
+export { Avatar } from './Avatar.jsx';

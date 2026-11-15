@@ -7,6 +7,10 @@ import { AuthProvider } from './context/AuthProvider.jsx';
 import { ToastProvider } from './context/ToastProvider.jsx';
 import { AppRoutes } from './app/AppRoutes.jsx';
 import { routerBasename } from './app/paths.js';
+import { applyCachedAppearance } from './utils/theme.js';
+
+// Tema e cores da última visita, antes da primeira pintura (evita piscar).
+applyCachedAppearance();
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

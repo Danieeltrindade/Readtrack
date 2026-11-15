@@ -24,9 +24,8 @@
 .book-detail__author {
   margin-top: calc(var(--space-2) * -1);
   color: var(--color-text-muted);
-  font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  font-style: italic;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
 }
 
 
@@ -295,7 +294,7 @@
 
 /* ---------- Comentário final × observações das sessões ---------- */
 .book-detail__final {
-  border-color: rgba(214, 168, 90, 0.28);
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 .book-detail__review-label {
@@ -323,7 +322,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
-  border: 1px dashed rgba(214, 168, 90, 0.4);
+  border: 1px dashed color-mix(in srgb, var(--accent) 40%, transparent);
   border-radius: var(--radius-md);
   color: var(--paper-300);
   font-size: var(--text-sm);

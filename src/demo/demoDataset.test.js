@@ -102,3 +102,10 @@ test('demonstração: conquistas desbloqueadas e em andamento, metas com progres
   const weeks = getWeeklyGoalHistory({ ledger: buildLedger(data.sessions), weeklyPages: data.goals.weeklyPages, now });
   assert.ok(weeks.length >= 3, 'meta semanal cumprida em algumas semanas');
 });
+
+test('demonstração: toda sessão de áudio avança (posição final depois da inicial)', () => {
+  for (const now of NOWS) {
+    const data = createDemoWorkspaceData(now);
+    for (const s of data.sessions.filter((x) => x.progressKind === 'audio')) assert.ok(s.endPositionSeconds > s.startPositionSeconds, s.id);
+  }
+});

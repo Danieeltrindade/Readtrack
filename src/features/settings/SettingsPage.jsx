@@ -20,6 +20,7 @@ import { useToast } from '../../hooks/useToast.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { GoalsForm } from '../goals/components/GoalsForm.jsx';
 import { AccountPanel } from './components/AccountPanel.jsx';
+import { AppearancePanel } from './components/AppearancePanel.jsx';
 import { exportFileName, parseImportText, prepareForPersonalArea } from '../../services/storage/dataTransfer.js';
 import { downloadJson, readFileAsText } from '../../utils/download.js';
 import { USER_NAME_MAX } from '../../utils/settings.js';
@@ -190,6 +191,8 @@ export default function SettingsPage() {
       )}
 
       {/* ---------- Preferências ---------- */}
+      <AppearancePanel />
+
       <Panel title="Preferências">
         <form
           className="settings__name"

@@ -53,6 +53,13 @@ Outras rotas: `/login`, `/register`, `/forgot-password` (pedir link de nova senh
 - Biblioteca com filtro por formato; selos de formato no livro, no cronômetro e na biblioteca.
 - Com sessões registradas, o jeito de medir o progresso de um livro não muda (páginas, % ou áudio), para não misturar medidas.
 
+**Visual novo (1.7.0)**
+- Tema **escuro e moderno** (padrão), **claro** ou **do sistema**, com **cor de destaque** escolhida entre 12 opções ou qualquer outra, e **cores próprias para cada formato** (físico, e-book/PDF, audiobook) — tudo em Configurações → Aparência e salvo na conta.
+- **Foto do perfil** (recortada e reduzida no navegador), exibida no menu no lugar da inicial.
+- **Painel novo:** anel animado com o tempo de hoje em relação à meta diária e o tempo de hoje por formato; "Lendo agora" com a animação de cada formato (ondas do áudio, páginas virando, folhas do PDF) e troca entre os livros em andamento; próxima conquista, páginas da semana e dúvidas em aberto; semana com os minutos de cada dia **separados por formato**; últimas anotações e sessões recentes por dia.
+- **Estatísticas por formato:** tempo, sessões e páginas do período para cada formato, nunca somados como se fossem a mesma coisa.
+- As animações param com "Reduzir animações" ou com a preferência do sistema.
+
 **Página inicial, demonstração e contas (1.6.0)**
 - Página inicial pública com a proposta do ReadTrack e as três opções. Quem já está logado vê "Continuar como …".
 - **Demonstração pública** com livros em todos os estados (lendo, concluídos, quero ler e um "já lido antes do ReadTrack"), cerca de 90 sessões nos últimos 5 meses (inclusive uma que passa da meia-noite, registros manuais e sessões com pausa), observações, vocabulário, comentários finais, metas com progresso e conquistas desbloqueadas e em andamento. As datas acompanham o dia de hoje, então Dia, Semana, Mês, 3 meses e Histórico total sempre têm dados.

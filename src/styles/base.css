@@ -12,7 +12,12 @@ html {
 body {
   margin: 0;
   min-height: 100dvh;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  /* Brilho suave do acento no topo (só decoração). */
+  background-image:
+    radial-gradient(60rem 30rem at 85% -10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    radial-gradient(40rem 24rem at -10% 110%, color-mix(in srgb, var(--format-audio) 6%, transparent), transparent 70%);
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: var(--text-base);
@@ -27,9 +32,9 @@ h3,
 h4 {
   margin: 0;
   font-family: var(--font-serif);
-  font-weight: 500;
+  font-weight: 700;
   line-height: 1.15;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 

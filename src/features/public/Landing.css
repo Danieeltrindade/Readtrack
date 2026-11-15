@@ -27,7 +27,7 @@
 .landing__notice {
   justify-self: start;
   padding: var(--space-2) var(--space-4);
-  border: 1px solid rgba(132, 169, 140, 0.35);
+  border: 1px solid color-mix(in srgb, var(--moss-500) 35%, transparent);
   border-radius: var(--radius-sm);
   background: var(--moss-soft);
   font-size: var(--text-sm);
@@ -104,7 +104,7 @@
   position: absolute;
   inset-inline: 6px;
   height: 2px;
-  background: rgba(237, 230, 214, 0.28);
+  background: color-mix(in srgb, var(--paper-100) 28%, transparent);
 }
 
 .landing__spine::before {

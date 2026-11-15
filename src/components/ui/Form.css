@@ -97,7 +97,7 @@
 .field--invalid .input,
 .field--invalid .textarea,
 .field--invalid .select {
-  border-color: rgba(224, 122, 106, 0.7);
+  border-color: color-mix(in srgb, var(--rust-500) 70%, transparent);
 }
 
 /* Datas: ícone do calendário legível no tema escuro */
@@ -174,7 +174,7 @@
 /* ---------- Resumo de erros ---------- */
 .form-alert {
   padding: var(--space-3) var(--space-4);
-  border: 1px solid rgba(224, 122, 106, 0.35);
+  border: 1px solid color-mix(in srgb, var(--rust-500) 35%, transparent);
   border-radius: var(--radius-sm);
   background: var(--rust-soft);
   font-size: var(--text-sm);

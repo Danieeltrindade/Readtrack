@@ -12,6 +12,7 @@ import { normalizeSettings } from '../utils/settings.js';
 import { createId } from '../utils/id.js';
 import { getProgressKind } from '../utils/formats.js';
 import { toggleQuestionResolved } from '../utils/annotations.js';
+import { applyAppearance, cacheAppearance } from '../utils/theme.js';
 import { applyFinalReview, createBook, createPastBook, updateBook as applyBookUpdate, updatePastBook } from '../utils/books.js';
 import { buildManualSession, buildSession, getMeasuredSeconds, getTimerStartPage, getTimerStartPosition } from '../utils/sessions.js';
 import { isManualSession } from '../utils/pages.js';
@@ -120,6 +121,20 @@ export function DataProvider({ children, persistence: persistenceProp }) {
     root.dataset.textSize = data.settings.textSize;
     root.dataset.motion = data.settings.motion;
   }, [data.settings.textSize, data.settings.motion]);
+
+  // Aparência (1.7.0): tema, cor de destaque e cores dos formatos.
+  const { theme, accent, formatColors } = data.settings;
+  const formatColorsKey = JSON.stringify(formatColors ?? {});
+  useEffect(() => {
+    const appearance = { theme, accent, formatColors: JSON.parse(formatColorsKey) };
+    applyAppearance(appearance);
+    cacheAppearance(appearance);
+    if (theme !== 'system' || typeof window.matchMedia !== 'function') return undefined;
+    const media = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => applyAppearance(appearance);
+    media.addEventListener?.('change', onChange);
+    return () => media.removeEventListener?.('change', onChange);
+  }, [theme, accent, formatColorsKey]);
 
   /* ---------- Livros ---------- */
 
