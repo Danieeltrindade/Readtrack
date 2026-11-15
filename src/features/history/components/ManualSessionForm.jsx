@@ -3,10 +3,15 @@ import { CalendarPlus } from 'lucide-react';
 import { Button, Field } from '../../../components/ui';
 import { addDays, toInputDate } from '../../../utils/date.js';
 import { calculateElapsedSeconds, formatDurationText } from '../../../utils/duration.js';
-import { LIMITS, combineLocalDateTime, parseVocabularyText } from '../../../utils/validation.js';
+import { combineLocalDateTime } from '../../../utils/validation.js';
 import { formatNumber } from '../../../utils/format.js';
+import { PROGRESS_KINDS, getProgressKind, getSessionKind } from '../../../utils/formats.js';
+import { anchorKindFor } from '../../../utils/annotations.js';
+import { NotebookEditor } from '../../../components/notebook/NotebookEditor.jsx';
+import { ProgressFields } from '../../../components/notebook/ProgressFields.jsx';
+import { flushNotebookPending } from '../../../components/notebook/notebookPending.js';
 
-const FIELD_ORDER = ['bookId', 'startDate', 'startTime', 'endDate', 'endTime', 'startPage', 'endPage', 'duration', 'notes', 'vocabularyText'];
+const FIELD_ORDER = ['bookId', 'startDate', 'startTime', 'endDate', 'endTime', 'startPage', 'endPage', 'startPercent', 'endPercent', 'startPosition', 'endPosition', 'speed', 'duration', 'notes'];
 
 /**
  * Formulário de sessão manual (cadastro e edição). As páginas são os números
@@ -14,13 +19,16 @@ const FIELD_ORDER = ['bookId', 'startDate', 'startTime', 'endDate', 'endTime', '
  * ser informada quando a leitura terminou em outro dia (ex.: depois da
  * meia-noite) — o formulário nunca deduz isso sozinho.
  */
-export function ManualSessionForm({ initialValues, books, lockBook = false, onSubmit, onCancel, submitLabel = 'Salvar sessão' }) {
+export function ManualSessionForm({ initialValues, books, lockBook = false, onSubmit, onCancel, submitLabel = 'Salvar sessão', session = null }) {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const formRef = useRef(null);
   const book = books.find((b) => b.id === values.bookId) ?? null;
   const set = (name) => (event) => setValues((current) => ({ ...current, [name]: event.target.value }));
+  // Edição: vale o tipo da própria sessão; nova: o formato do livro escolhido.
+  const kind = session ? getSessionKind(session) : book ? getProgressKind(book) : PROGRESS_KINDS.PAGES;
+  const byPages = kind === PROGRESS_KINDS.PAGES;
 
   // Prévia: páginas lidas e duração calculada pelos horários (só informativo).
   const preview = useMemo(() => {
@@ -39,8 +47,14 @@ export function ManualSessionForm({ initialValues, books, lockBook = false, onSu
   const submit = (event) => {
     event.preventDefault();
     if (saving) return;
+    const flushed = flushNotebookPending(values, anchorKindFor(kind));
+    if (flushed.error) {
+      setErrors({ form: `Caderno: ${flushed.error}` });
+      return;
+    }
     setSaving(true);
-    const result = onSubmit(values);
+    const finalValues = { ...values, ...flushed.patch, pending: null };
+    const result = onSubmit(finalValues);
     setSaving(false);
     if (!result.ok) {
       setErrors(result.errors ?? {});
@@ -48,8 +62,6 @@ export function ManualSessionForm({ initialValues, books, lockBook = false, onSu
       requestAnimationFrame(() => formRef.current?.querySelector(first ? `[name="${first}"]` : '.form-alert')?.focus());
     }
   };
-
-  const vocabularyCount = parseVocabularyText(values.vocabularyText).length;
 
   return (
     <form ref={formRef} className="session-dialog__form manual-form" onSubmit={submit} noValidate>
@@ -105,6 +117,14 @@ export function ManualSessionForm({ initialValues, books, lockBook = false, onSu
         )}
       </fieldset>
 
+      {!byPages && (
+        <fieldset className="manual-form__group">
+          <legend>{kind === PROGRESS_KINDS.AUDIO ? 'Posição no áudio' : 'Progresso (%)'}</legend>
+          <ProgressFields kind={kind} book={book} values={values} onChange={(name, value) => setValues((current) => ({ ...current, [name]: value }))} errorFor={(name) => errors[name]} />
+        </fieldset>
+      )}
+
+      {byPages && (
       <fieldset className="manual-form__group">
         <legend>Páginas (números impressos)</legend>
         <div className="session-dialog__row">
@@ -119,6 +139,7 @@ export function ManualSessionForm({ initialValues, books, lockBook = false, onSu
           {preview.pages ? `${formatNumber(preview.pages)} ${preview.pages === 1 ? 'página' : 'páginas'} (da ${values.startPage} à ${values.endPage}, inclusive).` : 'Ex.: 9 a 14 = 6 páginas.'}
         </p>
       </fieldset>
+      )}
 
       <Field
         label="Duração registrada"
@@ -130,16 +151,13 @@ export function ManualSessionForm({ initialValues, books, lockBook = false, onSu
         <input name="duration" className="input" inputMode="numeric" placeholder="ex.: 53:09" value={values.duration} onChange={set('duration')} autoComplete="off" />
       </Field>
 
-      <Field label="Observações" error={errors.notes} hint={`${values.notes.length}/${LIMITS.notes}`}>
-        <textarea name="notes" className="textarea" rows={3} value={values.notes} onChange={set('notes')} placeholder="Ideias, trechos, interpretações, dúvidas…" />
-      </Field>
-      <Field
-        label="Vocabulário"
-        error={errors.vocabularyText}
-        hint={`Uma palavra por linha: “palavra: significado”. ${vocabularyCount ? `${vocabularyCount} ${vocabularyCount === 1 ? 'palavra' : 'palavras'}.` : ''}`}
-      >
-        <textarea name="vocabularyText" className="textarea" rows={4} value={values.vocabularyText} onChange={set('vocabularyText')} placeholder={'Estela: Monumento histórico.\nRegato: Riacho estreito.'} />
-      </Field>
+      <NotebookEditor
+        value={values}
+        onChange={(next) => setValues((current) => ({ ...current, ...next }))}
+        anchorKind={anchorKindFor(kind)}
+        errors={{ notes: errors.notes, annotations: errors.annotations, vocabularyText: errors.vocabularyText }}
+        idPrefix={session ? `manual-${session.id}` : 'manual-new'}
+      />
 
       <div className="confirm-dialog__actions">
         <Button variant="ghost" onClick={onCancel}>

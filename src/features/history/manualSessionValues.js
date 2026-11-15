@@ -1,7 +1,7 @@
 /** Conversões entre sessão manual e os valores (texto) do formulário. */
 import { toInputDate, toInputTime } from '../../utils/date.js';
 import { formatDurationText } from '../../utils/duration.js';
-import { formatVocabularyText } from '../../utils/validation.js';
+import { formatAudioPosition } from '../../utils/formats.js';
 
 /** Sessão salva → valores do formulário (datas e horários locais). */
 export function sessionToManualValues(session) {
@@ -14,8 +14,15 @@ export function sessionToManualValues(session) {
     startPage: String(session.startPage),
     endPage: String(session.endPage),
     duration: formatDurationText(session.durationSeconds),
+    startPercent: session.startPercent === null || session.startPercent === undefined ? '' : String(session.startPercent),
+    endPercent: session.endPercent === null || session.endPercent === undefined ? '' : String(session.endPercent),
+    startPosition: session.startPositionSeconds === null || session.startPositionSeconds === undefined ? '' : formatAudioPosition(session.startPositionSeconds),
+    endPosition: session.endPositionSeconds === null || session.endPositionSeconds === undefined ? '' : formatAudioPosition(session.endPositionSeconds),
+    speed: session.speed ? String(session.speed) : '',
     notes: session.notes ?? '',
-    vocabularyText: formatVocabularyText(session.vocabulary),
+    vocabulary: session.vocabulary ?? [],
+    annotations: session.annotations ?? [],
+    pending: null,
   };
 }
 
@@ -28,6 +35,13 @@ export const emptyManualValues = (bookId = '') => ({
   startPage: '',
   endPage: '',
   duration: '',
+  startPercent: '',
+  endPercent: '',
+  startPosition: '',
+  endPosition: '',
+  speed: '',
   notes: '',
-  vocabularyText: '',
+  vocabulary: [],
+  annotations: [],
+  pending: null,
 });

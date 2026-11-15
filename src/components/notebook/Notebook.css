@@ -1,0 +1,315 @@
+/* Caderno da sessão (abas por tipo de anotação) */
+.notebook {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+.notebook__title {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.notebook__hint {
+  margin: 2px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.notebook__tabs {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.notebook__tab {
+  --tab-color: var(--note-summary);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.notebook__tab svg {
+  color: var(--tab-color);
+}
+
+.notebook__tab:hover {
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--tab-color) 50%, transparent);
+}
+
+.notebook__tab[aria-selected='true'] {
+  color: var(--color-text);
+  border-color: var(--tab-color);
+  background: color-mix(in srgb, var(--tab-color) 14%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--tab-color) 20%, transparent);
+}
+
+.notebook__tab--quote {
+  --tab-color: var(--note-quote);
+}
+.notebook__tab--word {
+  --tab-color: var(--note-word);
+}
+.notebook__tab--idea {
+  --tab-color: var(--note-idea);
+}
+.notebook__tab--question {
+  --tab-color: var(--note-question);
+}
+
+.notebook__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: var(--radius-full);
+  background: var(--line);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
+.notebook__panel {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.notebook__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notebook__item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.notebook__item--resolved .notebook__item-text {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.notebook__anchor {
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--line);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.notebook__item-body {
+  min-width: 0;
+}
+
+.notebook__item:not(:has(.notebook__anchor)) {
+  grid-template-columns: 1fr auto;
+}
+
+.notebook__item-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.notebook__item-text--quote {
+  font-family: var(--font-serif);
+  font-size: var(--text-md);
+  font-style: italic;
+}
+
+.notebook__item-text--word {
+  font-weight: 700;
+}
+
+.notebook__item-extra {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.notebook__resolved {
+  margin-top: 6px;
+  font-size: var(--text-sm);
+}
+
+.notebook__remove {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-faint);
+  cursor: pointer;
+}
+
+.notebook__remove:hover {
+  background: var(--line);
+  color: var(--color-danger);
+}
+
+.notebook__empty {
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--text-sm);
+}
+
+.notebook__form {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.notebook__text-field,
+.notebook__extra-field,
+.notebook__error {
+  grid-column: 2;
+}
+
+.notebook__add {
+  grid-column: 2;
+  justify-self: start;
+}
+
+@media (max-width: 560px) {
+  .notebook {
+    padding: var(--space-3);
+  }
+
+  .notebook__form {
+    grid-template-columns: 1fr;
+  }
+
+  .notebook__text-field,
+  .notebook__extra-field,
+  .notebook__error,
+  .notebook__add {
+    grid-column: 1;
+  }
+
+  .notebook__anchor-field {
+    max-width: 10rem;
+  }
+}
+
+/* "Como foi?" — humor da sessão */
+.mood-picker {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mood-picker__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.mood-picker__option {
+  min-height: 38px;
+  padding: 6px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.mood-picker__option[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 16%, transparent);
+  color: var(--color-text);
+}
+
+/* Linha de início/fim de progresso (porcentagem ou áudio) */
+.progress-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.progress-fields__delta {
+  display: grid;
+  gap: 4px;
+  padding-top: 28px;
+  min-width: 6rem;
+}
+
+.progress-fields__delta-label {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.progress-fields__delta-value {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+@media (max-width: 560px) {
+  .progress-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .progress-fields__delta {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+}
+
+.notebook__bulk {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.notebook__bulk-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.notebook .link-button {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}

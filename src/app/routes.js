@@ -13,6 +13,7 @@ export const ROUTES = Object.freeze({
   editBook: (id = ':bookId') => `/livros/${id}/editar`,
   reading: '/leitura',
   history: '/historico',
+  notebook: '/caderno',
   statistics: '/estatisticas',
   goals: '/metas',
   settings: '/configuracoes',

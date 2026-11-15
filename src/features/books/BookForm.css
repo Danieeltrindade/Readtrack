@@ -166,3 +166,119 @@
     flex: 1 1 auto;
   }
 }
+
+/* ---------- Formato do livro ---------- */
+.format-picker {
+  margin: 0;
+  padding: 0 0 var(--space-8);
+  border: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.format-picker__options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.format-picker__option {
+  --format-color: var(--format-print);
+  position: relative;
+}
+
+.format-picker__option--digital {
+  --format-color: var(--format-digital);
+}
+
+.format-picker__option--audio {
+  --format-color: var(--format-audio);
+}
+
+.format-picker__option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.format-picker__card {
+  display: grid;
+  gap: 6px;
+  height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.format-picker__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  color: var(--format-color);
+  background: color-mix(in srgb, var(--format-color) 14%, transparent);
+}
+
+.format-picker__label {
+  font-weight: 700;
+}
+
+.format-picker__desc {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.format-picker__option input:checked + .format-picker__card {
+  border-color: var(--format-color);
+  box-shadow:
+    0 0 0 1px var(--format-color),
+    0 0 32px color-mix(in srgb, var(--format-color) 18%, transparent);
+}
+
+.format-picker__option input:focus-visible + .format-picker__card {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.format-picker__option.is-disabled .format-picker__card {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.book-form__note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.book-form__audio-length {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.book-form__audio-length .input {
+  width: 5.5rem;
+}
+
+@media (max-width: 640px) {
+  .format-picker__options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .format-picker__card {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    column-gap: var(--space-3);
+  }
+
+  .format-picker__icon {
+    grid-row: span 2;
+  }
+}

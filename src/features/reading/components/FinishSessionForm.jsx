@@ -6,10 +6,15 @@ import { usePaths } from '../../../hooks/useWorkspace.js';
 import { useToast } from '../../../hooks/useToast.js';
 import { useActiveSession } from '../../../hooks/useActiveSession.js';
 import { calculateSessionPages } from '../../../utils/sessions.js';
-import { LIMITS, parseInteger, validateSessionForm } from '../../../utils/validation.js';
+import { MOOD_LABELS, SESSION_MOODS, parseInteger, validateSessionForm } from '../../../utils/validation.js';
 import { formatDuration, formatNumber, pluralize } from '../../../utils/format.js';
+import { PROGRESS_KINDS, formatAudioPosition, getProgressKind, parseAudioPosition, reachesEnd as reachesEndOf } from '../../../utils/formats.js';
+import { anchorKindFor } from '../../../utils/annotations.js';
+import { NotebookEditor } from '../../../components/notebook/NotebookEditor.jsx';
+import { ProgressFields } from '../../../components/notebook/ProgressFields.jsx';
+import { flushNotebookPending } from '../../../components/notebook/notebookPending.js';
 
-const FIELD_ORDER = ['startPage', 'endPage', 'durationMinutes', 'notes'];
+const FIELD_ORDER = ['startPage', 'endPage', 'startPercent', 'endPercent', 'startPosition', 'endPosition', 'speed', 'durationMinutes', 'notes'];
 
 /**
  * Depois de "Finalizar": o tempo fica congelado e o usuário informa as páginas.
@@ -26,10 +31,22 @@ export function FinishSessionForm() {
   const [submitted, setSubmitted] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const kind = getProgressKind(book);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
+
   const [values, setValues] = useState(() => ({
     startPage: String(active.startPage),
     endPage: '',
+    startPercent: String(active.startPercent ?? book.progressPercent ?? 0),
+    endPercent: '',
+    startPosition: formatAudioPosition(active.startPositionSeconds ?? book.audioPositionSeconds ?? 0),
+    endPosition: '',
+    speed: book.audioSpeed ? String(book.audioSpeed) : '',
     notes: '',
+    vocabulary: [],
+    annotations: [],
+    pending: null,
+    mood: null,
     durationEdited: false,
     durationMinutes: String(Math.max(1, Math.round(elapsedSeconds / 60))),
     markFinished: true,
@@ -50,9 +67,15 @@ export function FinishSessionForm() {
 
   const startPage = parseInteger(values.startPage);
   const endPage = parseInteger(values.endPage);
-  const hasRange = !Number.isNaN(startPage) && !Number.isNaN(endPage) && endPage > startPage;
+  const hasRange = byPages && !Number.isNaN(startPage) && !Number.isNaN(endPage) && endPage > startPage;
   const pages = hasRange ? calculateSessionPages({ startPage, endPage, previousProgress: book.currentPage }) : null;
-  const reachesEnd = Boolean(book.totalPages) && endPage === book.totalPages;
+  const reachesEnd = reachesEndOf(book, {
+    endPage,
+    endPercent: parseInteger(values.endPercent),
+    endPositionSeconds: parseAudioPosition(values.endPosition),
+  });
+  const endText = kind === PROGRESS_KINDS.AUDIO ? 'Você chegou ao fim do áudio.' : kind === PROGRESS_KINDS.PERCENT ? 'Você chegou a 100%.' : 'Você chegou à última página.';
+  const patch = (next) => setValues((current) => ({ ...current, ...next }));
 
   const set = (name) => (event) => {
     const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
@@ -65,6 +88,14 @@ export function FinishSessionForm() {
     setSubmitted(true);
     setFormError(null);
 
+    // O que ainda estava digitado no caderno (sem "Adicionar") entra também.
+    const flushed = flushNotebookPending(values, anchorKindFor(kind));
+    if (flushed.error) {
+      setFormError(`Caderno: ${flushed.error}`);
+      return;
+    }
+    const finalValues = { ...values, ...flushed.patch, pending: null };
+
     if (!validation.valid) {
       const first = FIELD_ORDER.find((name) => validation.errors[name]);
       requestAnimationFrame(() => formRef.current?.querySelector(`[name="${first}"]`)?.focus());
@@ -73,7 +104,7 @@ export function FinishSessionForm() {
 
     saving.current = true;
     setIsSaving(true);
-    const result = actions.completeSession(values);
+    const result = actions.completeSession(finalValues);
     if (!result.ok) {
       saving.current = false;
       setIsSaving(false);
@@ -85,7 +116,9 @@ export function FinishSessionForm() {
     toast.success(
       result.markFinished
         ? `Sessão salva e “${book.title}” concluído. Parabéns!`
-        : `Sessão salva: ${pluralize(session.pagesRead, 'página')} em ${formatDuration(session.durationSeconds)}.`,
+        : byPages
+          ? `Sessão salva: ${pluralize(session.pagesRead, 'página')} em ${formatDuration(session.durationSeconds)}.`
+          : `Sessão salva: ${formatDuration(session.durationSeconds)} ${kind === PROGRESS_KINDS.AUDIO ? 'ouvindo' : 'de leitura'}.`,
     );
     // Livro concluído agora: a página do livro oferece o comentário final.
     navigate(ROUTES.book(book.id), { replace: true, state: result.markFinished ? { askReview: true } : undefined });
@@ -112,6 +145,9 @@ export function FinishSessionForm() {
         </p>
       )}
 
+      {!byPages && <ProgressFields kind={kind} book={book} values={values} onChange={(name, value) => patch({ [name]: value })} errorFor={errorFor} autoFocusEnd />}
+
+      {byPages && (
       <div className="finish-form__pages">
         <Field label="Página inicial" required error={errorFor('startPage')} hint="Onde o marcador estava.">
           <input
@@ -139,6 +175,7 @@ export function FinishSessionForm() {
           <output className="finish-form__read-value tabular">{pages ? formatNumber(pages.pagesRead) : '—'}</output>
         </div>
       </div>
+      )}
 
       {pages && pages.overlap > 0 && (
         <p className="finish-form__note">
@@ -153,7 +190,7 @@ export function FinishSessionForm() {
           <span>
             <strong>Marcar “{book.title}” como concluído</strong>
             <br />
-            <span className="finish-form__muted">Você chegou à última página.</span>
+            <span className="finish-form__muted">{endText}</span>
           </span>
         </label>
       )}
@@ -186,20 +223,32 @@ export function FinishSessionForm() {
         {!values.durationEdited && errorFor('durationMinutes') && <p className="field__error">{errorFor('durationMinutes')}</p>}
       </div>
 
-      <Field
-        label="Observações desta leitura"
-        error={errorFor('notes')}
-        hint={`Pode deixar em branco. ${values.notes.length}/${LIMITS.notes}`}
-      >
-        <textarea
-          name="notes"
-          className="textarea"
-          rows={3}
-          value={values.notes}
-          onChange={set('notes')}
-          placeholder="Palavras que você não conhecia, ideias importantes, trechos para lembrar, sua interpretação, dúvidas ou reflexões…"
-        />
-      </Field>
+      <NotebookEditor
+        value={values}
+        onChange={patch}
+        anchorKind={anchorKindFor(kind)}
+        errors={{ notes: errorFor('notes'), annotations: errorFor('annotations'), vocabularyText: errorFor('vocabularyText') }}
+        idPrefix="finish-nb"
+      />
+
+      <fieldset className="field mood-picker">
+        <legend className="field__label">
+          Como foi? <span className="field__optional">(opcional)</span>
+        </legend>
+        <div className="mood-picker__options">
+          {SESSION_MOODS.map((mood) => (
+            <button
+              key={mood}
+              type="button"
+              className="mood-picker__option"
+              aria-pressed={values.mood === mood}
+              onClick={() => patch({ mood: values.mood === mood ? null : mood })}
+            >
+              {MOOD_LABELS[mood]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       <div className="finish-form__actions">
         <Button variant="ghost" icon={ArrowLeft} onClick={actions.backToTimer} disabled={isSaving}>

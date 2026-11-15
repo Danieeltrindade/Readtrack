@@ -25,6 +25,7 @@ const SettingsPage = lazy(() => import('../features/settings/SettingsPage.jsx'))
 const StatisticsPage = lazy(() => import('../features/statistics/StatisticsPage.jsx'));
 const GoalsPage = lazy(() => import('../features/goals/GoalsPage.jsx'));
 const HistoryPage = lazy(() => import('../features/history/HistoryPage.jsx'));
+const NotebookPage = lazy(() => import('../features/notebook/NotebookPage.jsx'));
 const ImportHistoryPage = lazy(() => import('../features/history/ImportHistoryPage.jsx'));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage.jsx'));
 
@@ -86,6 +87,7 @@ function WorkspaceRoutes() {
           <Route path={routePath(ROUTES.goals)} element={<GoalsPage />} />
           <Route path={routePath(ROUTES.settings)} element={<SettingsPage />} />
           <Route path={routePath(ROUTES.history)} element={<HistoryPage />} />
+          <Route path={routePath(ROUTES.notebook)} element={<NotebookPage />} />
           <Route path={routePath(ROUTES.importHistory)} element={<ImportHistoryPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

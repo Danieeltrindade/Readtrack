@@ -26,7 +26,7 @@ import { DEMO_ID_PREFIX, DEMO_WORKSPACE } from './demoIds.js';
 export { DEMO_ID_PREFIX, DEMO_WORKSPACE, isDemoRecordId } from './demoIds.js';
 
 /** Muda quando o conjunto fictício muda; a demonstração salva é recriada. */
-export const DEMO_DATASET_VERSION = 1;
+export const DEMO_DATASET_VERSION = 2; // 2 (1.7.0): e-book, audiobook e caderno de anotações
 
 export const DEMO_GOALS = Object.freeze({ dailyMinutes: 30, weeklyPages: 60 });
 
@@ -142,10 +142,21 @@ const PAST_BOOK = {
 const NOTES = {
   'dom-casmurro': {
     0: { notes: 'Começo leve; o narrador já desperta desconfiança.' },
-    4: { notes: 'Capítulo dos “olhos de ressaca”.', vocabulary: [{ term: 'ressaca', meaning: 'Movimento das ondas que recuam depois de bater na praia.' }] },
+    4: {
+      notes: 'Capítulo dos “olhos de ressaca”.',
+      vocabulary: [{ term: 'ressaca', meaning: 'Movimento das ondas que recuam depois de bater na praia.', anchor: { kind: 'page', value: 64 } }],
+      annotations: [
+        { type: 'quote', text: 'Olhos de cigana oblíqua e dissimulada.', note: 'A imagem que define Capitu no livro todo.', page: 63 },
+        { type: 'idea', text: 'O narrador escolhe as palavras para convencer o leitor antes de apresentar os fatos.', page: 66 },
+      ],
+      mood: 'focused',
+    },
     9: { notes: 'Anotado no caderno, sem cronômetro.', manual: true },
     10: { notes: 'Registro manual: esqueci de marcar o horário de término.', manual: true, unknownEnd: true },
-    15: { notes: 'Final ambíguo, como prometido.' },
+    15: {
+      notes: 'Final ambíguo, como prometido.',
+      annotations: [{ type: 'question', text: 'O narrador é confiável? Ele mesmo admite que a memória falha.', page: 250, resolved: true }],
+    },
   },
   'o-alienista': {
     1: { vocabulary: [{ term: 'alienista', meaning: 'Antigo nome do médico que tratava doenças mentais.' }] },
@@ -160,9 +171,12 @@ const NOTES = {
     3: { vocabulary: [{ term: 'oiticica', meaning: 'Árvore nativa do Nordeste.' }, { term: 'graúna', meaning: 'Pássaro de penas muito pretas.' }] },
   },
   'bras-cubas': {
-    0: { notes: 'A dedicatória ao verme já diz muito.' },
-    5: { notes: 'Capítulo curtíssimo, de propósito.' },
-    11: { notes: 'Leitura depois da meia-noite.' },
+    0: {
+      notes: 'A dedicatória ao verme já diz muito.',
+      annotations: [{ type: 'quote', text: 'Ao verme que primeiro roeu as frias carnes do meu cadáver dedico como saudosa lembrança estas memórias póstumas.', page: 5 }],
+    },
+    5: { notes: 'Capítulo curtíssimo, de propósito.', annotations: [{ type: 'idea', text: 'Os capítulos curtos imitam a conversa: o narrador interrompe a si mesmo o tempo todo.' }], mood: 'ok' },
+    11: { notes: 'Leitura depois da meia-noite.', annotations: [{ type: 'question', text: 'Em que momento Quincas Borba volta à história?' }], mood: 'tired' },
   },
 };
 
@@ -307,6 +321,9 @@ export function createDemoWorkspaceData(now = new Date()) {
         newPages: pages,
         notes: extra.notes ?? '',
         vocabulary: extra.vocabulary ?? [],
+        annotations: demoAnnotations(plan.slug, index, extra.annotations, finishedAt),
+        mood: extra.mood ?? null,
+        progressKind: 'pages',
         createdAt: iso(finishedAt),
         updatedAt: iso(finishedAt),
         isDemo: false,
@@ -336,6 +353,11 @@ export function createDemoWorkspaceData(now = new Date()) {
       isDemo: false,
     });
   }
+
+  // 1.7.0: um e-book lido por porcentagem e um audiobook (outros formatos).
+  const extra = createFormatBooks(base);
+  books.push(...extra.books);
+  sessions.push(...extra.sessions);
 
   const created = at(base, 152, 20, 0);
   books.push({
@@ -403,6 +425,178 @@ export function createDemoWorkspaceData(now = new Date()) {
     demoLoadedAt: iso(now),
   };
   return data;
+}
+
+/** Anotações do caderno da demonstração (ids estáveis, âncora na página). */
+function demoAnnotations(slug, index, items = [], when) {
+  return items.map((item, i) => {
+    const out = {
+      id: id('note', `${slug}_${index + 1}_${i + 1}`),
+      type: item.type,
+      text: item.text,
+      note: item.note ?? '',
+      anchor: item.page ? { kind: 'page', value: item.page } : item.seconds ? { kind: 'time', value: item.seconds } : item.percent ? { kind: 'percent', value: item.percent } : null,
+      createdAt: iso(when),
+    };
+    if (item.type === 'question') out.resolved = Boolean(item.resolved);
+    return out;
+  });
+}
+
+/**
+ * E-book (por porcentagem, já concluído) e audiobook (em andamento).
+ * Não têm páginas: contam no tempo, nas sessões, na sequência e nos livros
+ * concluídos. Usam um sorteio próprio, para não mudar o resto da demonstração.
+ */
+function createFormatBooks(base) {
+  const random = mulberry32(20261115);
+  const books = [];
+  const sessions = [];
+
+  // E-book "Senhora": sessões no almoço, de 88 a 62 dias atrás, até 100%.
+  const ebookId = id('book', 'senhora');
+  const ebookDays = [];
+  for (let d = 88; d >= 62; d -= 2) ebookDays.push(d);
+  const steps = splitPages(100, ebookDays.map(() => 6 + random() * 6));
+  let percent = 0;
+  ebookDays.forEach((daysAgo, index) => {
+    const startedAt = at(base, daysAgo, 13, 5 + Math.floor(random() * 20));
+    const durationSeconds = Math.round((18 + random() * 20) * 60);
+    const finishedAt = new Date(startedAt.getTime() + durationSeconds * 1000);
+    const start = percent;
+    percent += steps[index];
+    const annotations =
+      index === 3
+        ? demoAnnotations('senhora', index, [{ type: 'idea', text: 'Aurélia compra o próprio casamento: o dinheiro é o verdadeiro assunto do romance.', percent: start + 2 }], finishedAt)
+        : [];
+    sessions.push({
+      id: id('session', `senhora_${index + 1}`),
+      bookId: ebookId,
+      source: 'timer',
+      startedAt: iso(startedAt),
+      finishedAt: iso(finishedAt),
+      durationSeconds,
+      pausedSeconds: 0,
+      pauseCount: 0,
+      segments: [{ start: iso(startedAt), end: iso(finishedAt) }],
+      startPage: 0,
+      endPage: 0,
+      pagesRead: 0,
+      newPages: 0,
+      progressKind: 'percent',
+      startPercent: start,
+      endPercent: percent,
+      notes: index === 0 ? 'Lendo no celular, pelo app de e-books.' : '',
+      vocabulary: index === 5 ? [{ term: 'dote', meaning: 'Bens que a noiva levava para o casamento.', anchor: { kind: 'percent', value: start + 1 } }] : [],
+      annotations,
+      mood: null,
+      createdAt: iso(finishedAt),
+      updatedAt: iso(finishedAt),
+      isDemo: false,
+    });
+  });
+  const ebookFirst = sessions[0];
+  const ebookLast = sessions.at(-1);
+  books.push({
+    id: ebookId,
+    title: 'Senhora',
+    author: 'José de Alencar',
+    format: 'digital',
+    progressMode: 'percent',
+    progressPercent: 100,
+    totalPages: null,
+    currentPage: 0,
+    contentStartPage: null,
+    status: 'finished',
+    coverUrl: '',
+    coverColor: '#36575C',
+    description: 'Aurélia, rica de repente, “compra” o casamento com o homem que a trocou por um dote maior.',
+    rating: 4,
+    review: 'Li inteiro no celular. A virada do capítulo da noite de núpcias é ótima.',
+    learnings: '',
+    addedAsRead: false,
+    startedAt: ebookFirst.startedAt,
+    finishedAt: ebookLast.finishedAt,
+    createdAt: ebookFirst.startedAt,
+    updatedAt: ebookLast.finishedAt,
+    isDemo: false,
+  });
+
+  // Audiobook "O Guarani": no caminho para casa (dias úteis), nos últimos 40 dias.
+  const audioId = id('book', 'o-guarani');
+  const audioDuration = 14 * 3600 + 20 * 60;
+  const speed = 1.25;
+  let position = 0;
+  let count = 0;
+  const audioSessions = [];
+  for (let daysAgo = 40; daysAgo >= 1; daysAgo -= 1) {
+    const weekday = addDays(base, -daysAgo).getDay();
+    if (weekday === 0 || weekday === 6 || random() < 0.35) continue;
+    const startedAt = at(base, daysAgo, 18, 10 + Math.floor(random() * 15));
+    const durationSeconds = Math.round((22 + random() * 18) * 60);
+    const finishedAt = new Date(startedAt.getTime() + durationSeconds * 1000);
+    const start = position;
+    position = Math.min(audioDuration - 3600, position + Math.round(durationSeconds * speed));
+    count += 1;
+    const notesFor = {
+      2: { notes: 'Narração muito boa nas cenas de floresta.', annotations: [{ type: 'quote', text: 'De um dos cabeços da Serra dos Órgãos desliza um fio de água.', seconds: 95 }] },
+      6: { annotations: [{ type: 'question', text: 'Peri é inspirado em algum personagem histórico?', seconds: start + 600 }], mood: 'distracted' },
+    }[count];
+    audioSessions.push({
+      id: id('session', `o-guarani_${count}`),
+      bookId: audioId,
+      source: 'timer',
+      startedAt: iso(startedAt),
+      finishedAt: iso(finishedAt),
+      durationSeconds,
+      pausedSeconds: 0,
+      pauseCount: 0,
+      segments: [{ start: iso(startedAt), end: iso(finishedAt) }],
+      startPage: 0,
+      endPage: 0,
+      pagesRead: 0,
+      newPages: 0,
+      progressKind: 'audio',
+      startPositionSeconds: start,
+      endPositionSeconds: position,
+      speed,
+      notes: notesFor?.notes ?? '',
+      vocabulary: count === 4 ? [{ term: 'cabeço', meaning: 'Cume arredondado de um monte.', anchor: { kind: 'time', value: start + 300 } }] : [],
+      annotations: demoAnnotations('o-guarani', count - 1, notesFor?.annotations, finishedAt),
+      mood: notesFor?.mood ?? null,
+      createdAt: iso(finishedAt),
+      updatedAt: iso(finishedAt),
+      isDemo: false,
+    });
+  }
+  sessions.push(...audioSessions);
+  books.push({
+    id: audioId,
+    title: 'O Guarani',
+    author: 'José de Alencar',
+    format: 'audio',
+    narrator: 'Narração fictícia (demonstração)',
+    audioDurationSeconds: audioDuration,
+    audioPositionSeconds: position,
+    audioSpeed: speed,
+    totalPages: null,
+    currentPage: 0,
+    contentStartPage: null,
+    status: 'reading',
+    coverUrl: '',
+    coverColor: '#6B4A3A',
+    description: 'A amizade entre o indígena Peri e a família de D. Antônio de Mariz, no Rio de Janeiro do século XVII.',
+    rating: null,
+    review: '',
+    learnings: '',
+    addedAsRead: false,
+    startedAt: audioSessions[0]?.startedAt ?? iso(at(base, 40, 18, 0)),
+    finishedAt: null,
+    createdAt: audioSessions[0]?.startedAt ?? iso(at(base, 40, 18, 0)),
+    updatedAt: audioSessions.at(-1)?.finishedAt ?? iso(at(base, 40, 18, 0)),
+    isDemo: false,
+  });
+  return { books, sessions };
 }
 
 function omitSlug({ slug: _slug, ...rest }) {

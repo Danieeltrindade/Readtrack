@@ -18,7 +18,7 @@
 -- (ex.: "book_6f1c…"), único por usuário — chave primária (user_id, id).
 -- Assim a migração do localStorage pode ser repetida sem duplicar nada.
 --
--- Versões: o script acumula as mudanças (v1.1 → v1.6.0) de forma aditiva.
+-- Versões: o script acumula as mudanças (v1.1 → v1.7.0) de forma aditiva.
 -- Para um banco novo, rode-o uma vez; para atualizar um banco existente,
 -- rode a versão nova inteira de novo — nenhum dado é apagado.
 -- =====================================================================
@@ -188,9 +188,17 @@ do $$
 begin
   -- Cronômetro: páginas pelo marcador (final − inicial).
   -- Manual: intervalo anotado, inclusivo (final − inicial + 1).
-  alter table public.reading_sessions drop constraint if exists sessions_pages_read;
-  alter table public.reading_sessions add constraint sessions_pages_read
-    check (pages_read = end_page - start_page + case when source = 'manual' then 1 else 0 end);
+  -- (Na v1.7.0 esta regra passa a considerar também o tipo de progresso;
+  -- se ela já estiver na forma nova, não é trocada de volta.)
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'sessions_pages_read' and conrelid = 'public.reading_sessions'::regclass
+      and pg_get_constraintdef(oid) like '%progress_kind%'
+  ) then
+    alter table public.reading_sessions drop constraint if exists sessions_pages_read;
+    alter table public.reading_sessions add constraint sessions_pages_read
+      check (pages_read = end_page - start_page + case when source = 'manual' then 1 else 0 end);
+  end if;
 
   if not exists (select 1 from pg_constraint where conname = 'sessions_source_valid' and conrelid = 'public.reading_sessions'::regclass) then
     alter table public.reading_sessions add constraint sessions_source_valid check (source in ('timer', 'manual'));
@@ -335,6 +343,134 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------
+-- v1.7.0 — formatos (físico, e-book/PDF, audiobook), caderno de anotações
+-- e aparência do perfil.
+-- Migração aditiva e segura: só acrescenta colunas (com valor padrão) e
+-- ajusta duas regras das sessões para aceitar progresso por porcentagem ou
+-- por posição no áudio. Nenhum dado existente é alterado: livros antigos
+-- ficam como "físico" por páginas e sessões antigas como "por páginas".
+-- ---------------------------------------------------------------------
+alter table public.books add column if not exists format text not null default 'print';
+alter table public.books add column if not exists progress_mode text not null default 'pages';
+alter table public.books add column if not exists progress_percent smallint not null default 0;
+alter table public.books add column if not exists audio_duration_seconds integer;
+alter table public.books add column if not exists audio_position_seconds integer not null default 0;
+alter table public.books add column if not exists narrator text not null default '';
+alter table public.books add column if not exists audio_speed numeric(3, 2);
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'books_format_valid' and conrelid = 'public.books'::regclass) then
+    alter table public.books add constraint books_format_valid check (format in ('print', 'digital', 'audio'));
+  end if;
+  -- Porcentagem só para e-book/PDF.
+  if not exists (select 1 from pg_constraint where conname = 'books_progress_mode_valid' and conrelid = 'public.books'::regclass) then
+    alter table public.books add constraint books_progress_mode_valid
+      check (progress_mode = 'pages' or (progress_mode = 'percent' and format = 'digital'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'books_progress_percent_range' and conrelid = 'public.books'::regclass) then
+    alter table public.books add constraint books_progress_percent_range check (progress_percent between 0 and 100);
+  end if;
+  -- Audiobook: até 100 horas; a posição não passa da duração.
+  if not exists (select 1 from pg_constraint where conname = 'books_audio_valid' and conrelid = 'public.books'::regclass) then
+    alter table public.books add constraint books_audio_valid
+      check ((audio_duration_seconds is null or audio_duration_seconds between 1 and 360000)
+        and audio_position_seconds >= 0
+        and (audio_duration_seconds is null or audio_position_seconds <= audio_duration_seconds));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'books_narrator_length' and conrelid = 'public.books'::regclass) then
+    alter table public.books add constraint books_narrator_length check (char_length(narrator) <= 120);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'books_audio_speed_range' and conrelid = 'public.books'::regclass) then
+    alter table public.books add constraint books_audio_speed_range check (audio_speed is null or audio_speed between 0.5 and 3);
+  end if;
+end;
+$$;
+
+comment on column public.books.format is 'print = livro físico; digital = e-book ou PDF; audio = audiobook.';
+comment on column public.books.progress_mode is 'pages = por página; percent = por porcentagem (só e-book).';
+comment on column public.books.audio_position_seconds is 'Audiobook: maior posição alcançada no áudio, em segundos.';
+
+alter table public.reading_sessions add column if not exists progress_kind text not null default 'pages';
+alter table public.reading_sessions add column if not exists start_percent smallint;
+alter table public.reading_sessions add column if not exists end_percent smallint;
+alter table public.reading_sessions add column if not exists start_position_seconds integer;
+alter table public.reading_sessions add column if not exists end_position_seconds integer;
+alter table public.reading_sessions add column if not exists speed numeric(3, 2);
+alter table public.reading_sessions add column if not exists annotations jsonb not null default '[]'::jsonb;
+alter table public.reading_sessions add column if not exists mood text;
+
+do $$
+begin
+  -- Páginas: a regra da v1.4 continua valendo para sessões por páginas.
+  -- Sessões por porcentagem ou áudio não têm páginas (tudo 0).
+  alter table public.reading_sessions drop constraint if exists sessions_pages_read;
+  alter table public.reading_sessions add constraint sessions_pages_read
+    check (pages_read = end_page - start_page + case when source = 'manual' and progress_kind = 'pages' then 1 else 0 end);
+
+  alter table public.reading_sessions drop constraint if exists sessions_manual_rules;
+  alter table public.reading_sessions add constraint sessions_manual_rules
+    check (source <> 'manual' or ((progress_kind <> 'pages' or start_page >= 1) and (finished_at is null or finished_at > started_at)));
+
+  if not exists (select 1 from pg_constraint where conname = 'sessions_progress_kind_valid' and conrelid = 'public.reading_sessions'::regclass) then
+    alter table public.reading_sessions add constraint sessions_progress_kind_valid check (progress_kind in ('pages', 'percent', 'audio'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'sessions_kind_fields' and conrelid = 'public.reading_sessions'::regclass) then
+    alter table public.reading_sessions add constraint sessions_kind_fields check (
+      progress_kind = 'pages'
+      or (start_page = 0 and end_page = 0 and pages_read = 0 and new_pages = 0 and (
+        (progress_kind = 'percent' and start_percent between 0 and 100 and end_percent between start_percent and 100)
+        or (progress_kind = 'audio' and start_position_seconds >= 0 and end_position_seconds >= start_position_seconds
+            and end_position_seconds <= 360000)
+      ))
+    );
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'sessions_speed_range' and conrelid = 'public.reading_sessions'::regclass) then
+    alter table public.reading_sessions add constraint sessions_speed_range check (speed is null or speed between 0.5 and 3);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'sessions_annotations_array' and conrelid = 'public.reading_sessions'::regclass) then
+    alter table public.reading_sessions add constraint sessions_annotations_array
+      check (jsonb_typeof(annotations) = 'array' and jsonb_array_length(annotations) <= 200);
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'sessions_mood_valid' and conrelid = 'public.reading_sessions'::regclass) then
+    alter table public.reading_sessions add constraint sessions_mood_valid
+      check (mood is null or mood in ('focused', 'ok', 'distracted', 'tired'));
+  end if;
+end;
+$$;
+
+comment on column public.reading_sessions.progress_kind is 'pages = páginas; percent = porcentagem (e-book); audio = posição no áudio (segundos).';
+comment on column public.reading_sessions.annotations is 'Caderno da sessão: [{ "id", "type": quote|idea|question, "text", "note", "anchor", "resolved" }].';
+comment on column public.reading_sessions.mood is 'Como foi a sessão (opcional): focused, ok, distracted, tired.';
+
+-- Aparência (por conta): tema, cor de destaque, cores dos formatos e foto.
+alter table public.profiles add column if not exists theme text not null default 'dark';
+alter table public.profiles add column if not exists accent text not null default '#8B7CFF';
+alter table public.profiles add column if not exists format_colors jsonb not null default '{}'::jsonb;
+alter table public.profiles add column if not exists avatar_url text not null default '';
+
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'profiles_theme_valid' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_theme_valid check (theme in ('dark', 'light', 'system'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'profiles_accent_valid' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_accent_valid check (accent ~ '^#[0-9A-Fa-f]{6}$');
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'profiles_format_colors_object' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_format_colors_object check (jsonb_typeof(format_colors) = 'object');
+  end if;
+  -- Foto: imagem já reduzida pelo site (data URL), até ~300 KB.
+  if not exists (select 1 from pg_constraint where conname = 'profiles_avatar_valid' and conrelid = 'public.profiles'::regclass) then
+    alter table public.profiles add constraint profiles_avatar_valid
+      check (avatar_url = '' or (char_length(avatar_url) <= 300000 and avatar_url ~ '^data:image/(png|jpe?g|webp);base64,'));
+  end if;
+end;
+$$;
+
+comment on column public.profiles.avatar_url is 'Foto do perfil (opcional): data URL de imagem reduzida pelo site.';
+
+-- ---------------------------------------------------------------------
 -- v1.6.0 — publicação: demonstração fora do banco e importação atômica
 -- Migração aditiva: só cria regras novas e uma função. Nenhuma linha
 -- existente é alterada ou apagada.
@@ -406,13 +542,17 @@ begin
   insert into public.books (
     user_id, id, title, author, description, cover_url, cover_color, total_pages, added_as_read,
     content_start_page, current_page, status, started_at, finished_at, rating, review, learnings,
+    format, progress_mode, progress_percent, audio_duration_seconds, audio_position_seconds, narrator, audio_speed,
     is_demo, created_at, updated_at
   )
   select
     v_uid, b.id, b.title, coalesce(b.author, ''), coalesce(b.description, ''), coalesce(b.cover_url, ''),
     b.cover_color, b.total_pages, coalesce(b.added_as_read, false), b.content_start_page,
     coalesce(b.current_page, 0), coalesce(b.status, 'want-to-read'), b.started_at, b.finished_at,
-    b.rating, coalesce(b.review, ''), coalesce(b.learnings, ''), coalesce(b.is_demo, false),
+    b.rating, coalesce(b.review, ''), coalesce(b.learnings, ''),
+    coalesce(b.format, 'print'), coalesce(b.progress_mode, 'pages'), coalesce(b.progress_percent, 0),
+    b.audio_duration_seconds, coalesce(b.audio_position_seconds, 0), coalesce(b.narrator, ''), b.audio_speed,
+    coalesce(b.is_demo, false),
     coalesce(b.created_at, now()), coalesce(b.updated_at, now())
   from jsonb_populate_recordset(null::public.books, coalesce(p_books, '[]'::jsonb)) as b
   on conflict (user_id, id) do update set
@@ -421,19 +561,25 @@ begin
     added_as_read = excluded.added_as_read, content_start_page = excluded.content_start_page,
     current_page = excluded.current_page, status = excluded.status, started_at = excluded.started_at,
     finished_at = excluded.finished_at, rating = excluded.rating, review = excluded.review,
-    learnings = excluded.learnings, is_demo = excluded.is_demo, updated_at = excluded.updated_at;
+    learnings = excluded.learnings, format = excluded.format, progress_mode = excluded.progress_mode,
+    progress_percent = excluded.progress_percent, audio_duration_seconds = excluded.audio_duration_seconds,
+    audio_position_seconds = excluded.audio_position_seconds, narrator = excluded.narrator,
+    audio_speed = excluded.audio_speed, is_demo = excluded.is_demo, updated_at = excluded.updated_at;
   get diagnostics v_books = row_count;
 
   insert into public.reading_sessions (
     user_id, id, book_id, started_at, finished_at, duration_seconds, paused_seconds, pause_count,
     segments, start_page, end_page, pages_read, new_pages, notes, is_demo, source, vocabulary,
-    created_at, updated_at
+    progress_kind, start_percent, end_percent, start_position_seconds, end_position_seconds, speed,
+    annotations, mood, created_at, updated_at
   )
   select
     v_uid, s.id, s.book_id, s.started_at, s.finished_at, s.duration_seconds, coalesce(s.paused_seconds, 0),
     coalesce(s.pause_count, 0), coalesce(s.segments, '[]'::jsonb), s.start_page, s.end_page, s.pages_read,
     coalesce(s.new_pages, 0), coalesce(s.notes, ''), coalesce(s.is_demo, false), coalesce(s.source, 'timer'),
-    coalesce(s.vocabulary, '[]'::jsonb), coalesce(s.created_at, now()), coalesce(s.updated_at, now())
+    coalesce(s.vocabulary, '[]'::jsonb), coalesce(s.progress_kind, 'pages'), s.start_percent, s.end_percent,
+    s.start_position_seconds, s.end_position_seconds, s.speed, coalesce(s.annotations, '[]'::jsonb), s.mood,
+    coalesce(s.created_at, now()), coalesce(s.updated_at, now())
   from jsonb_populate_recordset(null::public.reading_sessions, coalesce(p_sessions, '[]'::jsonb)) as s
   on conflict (user_id, id) do update set
     book_id = excluded.book_id, started_at = excluded.started_at, finished_at = excluded.finished_at,
@@ -441,7 +587,11 @@ begin
     pause_count = excluded.pause_count, segments = excluded.segments, start_page = excluded.start_page,
     end_page = excluded.end_page, pages_read = excluded.pages_read, new_pages = excluded.new_pages,
     notes = excluded.notes, is_demo = excluded.is_demo, source = excluded.source,
-    vocabulary = excluded.vocabulary, updated_at = excluded.updated_at;
+    vocabulary = excluded.vocabulary, progress_kind = excluded.progress_kind,
+    start_percent = excluded.start_percent, end_percent = excluded.end_percent,
+    start_position_seconds = excluded.start_position_seconds, end_position_seconds = excluded.end_position_seconds,
+    speed = excluded.speed, annotations = excluded.annotations, mood = excluded.mood,
+    updated_at = excluded.updated_at;
   get diagnostics v_sessions = row_count;
 
   if p_active_session is not null and jsonb_typeof(p_active_session) = 'object' then
@@ -458,6 +608,10 @@ begin
       week_starts_on = coalesce(p_profile ->> 'week_starts_on', week_starts_on),
       text_size = coalesce(p_profile ->> 'text_size', text_size),
       motion = coalesce(p_profile ->> 'motion', motion),
+      theme = coalesce(p_profile ->> 'theme', theme),
+      accent = coalesce(p_profile ->> 'accent', accent),
+      format_colors = coalesce(p_profile -> 'format_colors', format_colors),
+      avatar_url = coalesce(p_profile ->> 'avatar_url', avatar_url),
       daily_minutes_goal = case when p_profile ? 'daily_minutes_goal' then (p_profile ->> 'daily_minutes_goal')::integer else daily_minutes_goal end,
       weekly_pages_goal = case when p_profile ? 'weekly_pages_goal' then (p_profile ->> 'weekly_pages_goal')::integer else weekly_pages_goal end
     where id = v_uid;

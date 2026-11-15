@@ -6,7 +6,12 @@ import { usePaths } from '../../../hooks/useWorkspace.js';
 import { useData } from '../../../hooks/useData.js';
 import { useToast } from '../../../hooks/useToast.js';
 import { getMeasuredSeconds } from '../../../utils/sessions.js';
-import { LIMITS, formatVocabularyText } from '../../../utils/validation.js';
+import { MOOD_LABELS } from '../../../utils/validation.js';
+import { PROGRESS_KINDS, describeSessionProgress, formatAudioPosition, formatSpeed, getSessionKind } from '../../../utils/formats.js';
+import { NOTEBOOK_LABELS, anchorKindFor, formatAnchor } from '../../../utils/annotations.js';
+import { NotebookEditor } from '../../../components/notebook/NotebookEditor.jsx';
+import { ProgressFields } from '../../../components/notebook/ProgressFields.jsx';
+import { flushNotebookPending } from '../../../components/notebook/notebookPending.js';
 import { isManualSession } from '../../../utils/pages.js';
 import { formatDurationText, getDurationDivergence } from '../../../utils/duration.js';
 import { ManualSessionForm } from './ManualSessionForm.jsx';
@@ -15,7 +20,7 @@ import { sessionToManualValues } from '../manualSessionValues.js';
 import { formatDuration, formatFullDate, formatNumber, formatSessionPeriod, pluralize } from '../../../utils/format.js';
 import './SessionDialog.css';
 
-const FIELD_ORDER = ['startPage', 'endPage', 'durationMinutes', 'notes', 'vocabularyText'];
+const FIELD_ORDER = ['startPage', 'endPage', 'startPercent', 'endPercent', 'startPosition', 'endPosition', 'speed', 'durationMinutes', 'notes'];
 
 /**
  * Detalhes de uma sessão salva, com edição e exclusão.
@@ -43,12 +48,22 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
   const measured = getMeasuredSeconds(session);
   const divergence = getDurationDivergence(session);
   const vocabulary = session.vocabulary ?? [];
+  const annotations = session.annotations ?? [];
+  const kind = getSessionKind(session);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
   const [values, setValues] = useState(() => ({
     startPage: String(session.startPage),
     endPage: String(session.endPage),
+    startPercent: String(session.startPercent ?? 0),
+    endPercent: String(session.endPercent ?? 0),
+    startPosition: formatAudioPosition(session.startPositionSeconds ?? 0),
+    endPosition: formatAudioPosition(session.endPositionSeconds ?? 0),
+    speed: session.speed ? String(session.speed) : '',
     durationMinutes: String(Math.max(1, Math.round((session.durationSeconds ?? 0) / 60))),
     notes: session.notes ?? '',
-    vocabularyText: formatVocabularyText(session.vocabulary),
+    vocabulary,
+    annotations,
+    pending: null,
   }));
   const [errors, setErrors] = useState({});
   const [confirmNotes, setConfirmNotes] = useState(false);
@@ -57,7 +72,12 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
 
   const save = (event) => {
     event.preventDefault();
-    const result = actions.updateSession(session.id, values);
+    const flushed = flushNotebookPending(values, anchorKindFor(kind));
+    if (flushed.error) {
+      setErrors({ form: `Caderno: ${flushed.error}` });
+      return;
+    }
+    const result = actions.updateSession(session.id, { ...values, ...flushed.patch, pending: null });
     if (!result.ok) {
       setErrors(result.errors);
       const first = FIELD_ORDER.find((name) => result.errors[name]);
@@ -84,9 +104,9 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
     return (
       <>
         <p className="confirm-dialog__description">
-          A sessão de {formatFullDate(session.startedAt)} ({pluralize(session.pagesRead, 'página')}
+          A sessão de {formatFullDate(session.startedAt)} ({byPages ? pluralize(session.pagesRead, 'página') : describeSessionProgress(session)}
           {session.durationSeconds ? ` em ${formatDuration(session.durationSeconds)}` : ''}) será apagada
-          {session.notes || vocabulary.length ? ', junto com as observações e o vocabulário' : ''}. As estatísticas e o
+          {session.notes || vocabulary.length || annotations.length ? ', junto com as anotações do caderno' : ''}. As estatísticas e o
           progresso de “{book.title}” serão recalculados. Essa ação não pode ser desfeita.
         </p>
         <div className="confirm-dialog__actions">
@@ -106,6 +126,7 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
       <ManualSessionForm
         initialValues={sessionToManualValues(session)}
         books={books}
+        session={session}
         lockBook
         submitLabel="Salvar alterações"
         onCancel={() => setMode('view')}
@@ -129,14 +150,24 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
             {errors.form}
           </p>
         )}
+        {byPages ? (
         <div className="session-dialog__row">
-          <Field label="Página inicial" required error={errors.startPage}>
-            <input name="startPage" className="input input--number" inputMode="numeric" pattern="[0-9]*" value={values.startPage} onChange={set('startPage')} />
-          </Field>
-          <Field label="Página final" required error={errors.endPage} hint={book.totalPages ? `Até ${formatNumber(book.totalPages)}.` : undefined}>
-            <input name="endPage" className="input input--number" inputMode="numeric" pattern="[0-9]*" value={values.endPage} onChange={set('endPage')} />
-          </Field>
-        </div>
+            <Field label="Página inicial" required error={errors.startPage}>
+              <input name="startPage" className="input input--number" inputMode="numeric" pattern="[0-9]*" value={values.startPage} onChange={set('startPage')} />
+            </Field>
+            <Field label="Página final" required error={errors.endPage} hint={book.totalPages ? `Até ${formatNumber(book.totalPages)}.` : undefined}>
+              <input name="endPage" className="input input--number" inputMode="numeric" pattern="[0-9]*" value={values.endPage} onChange={set('endPage')} />
+            </Field>
+          </div>
+        ) : (
+          <ProgressFields
+            kind={kind}
+            book={book}
+            values={values}
+            onChange={(name, value) => setValues((current) => ({ ...current, [name]: value }))}
+            errorFor={(name) => errors[name]}
+          />
+        )}
         <Field
           label="Duração em minutos"
           required
@@ -145,12 +176,13 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
         >
           <input name="durationMinutes" className="input input--number" inputMode="numeric" pattern="[0-9]*" value={values.durationMinutes} onChange={set('durationMinutes')} />
         </Field>
-        <Field label="Observações desta leitura" error={errors.notes} hint={`${values.notes.length}/${LIMITS.notes} · deixe vazio para remover`}>
-          <textarea name="notes" className="textarea" rows={4} value={values.notes} onChange={set('notes')} />
-        </Field>
-        <Field label="Vocabulário" error={errors.vocabularyText} hint="Uma palavra por linha: “palavra: significado”.">
-          <textarea name="vocabularyText" className="textarea" rows={3} value={values.vocabularyText} onChange={set('vocabularyText')} />
-        </Field>
+        <NotebookEditor
+          value={values}
+          onChange={(next) => setValues((current) => ({ ...current, ...next }))}
+          anchorKind={anchorKindFor(kind)}
+          errors={{ notes: errors.notes, annotations: errors.annotations, vocabularyText: errors.vocabularyText }}
+          idPrefix={`edit-${session.id}`}
+        />
         <p className="session-dialog__muted">Data e horários vêm do cronômetro e não podem ser alterados.</p>
         <div className="confirm-dialog__actions">
           <Button variant="ghost" onClick={() => setMode('view')}>
@@ -188,14 +220,30 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
             )}
           </dd>
         </div>
-        <div>
-          <dt>Páginas</dt>
-          <dd className="tabular">
-            {manual ? `${formatNumber(session.startPage)}–${formatNumber(session.endPage)}` : `${formatNumber(session.startPage)} → ${formatNumber(session.endPage)}`} ·{' '}
-            {pluralize(session.pagesRead, 'página lida', 'páginas lidas')}
-            {session.newPages !== session.pagesRead && <small> ({formatNumber(session.newPages)} novas)</small>}
-          </dd>
-        </div>
+        {byPages ? (
+          <div>
+            <dt>Páginas</dt>
+            <dd className="tabular">
+              {manual ? `${formatNumber(session.startPage)}–${formatNumber(session.endPage)}` : `${formatNumber(session.startPage)} → ${formatNumber(session.endPage)}`} ·{' '}
+              {pluralize(session.pagesRead, 'página lida', 'páginas lidas')}
+              {session.newPages !== session.pagesRead && <small> ({formatNumber(session.newPages)} novas)</small>}
+            </dd>
+          </div>
+        ) : (
+          <div>
+            <dt>{kind === PROGRESS_KINDS.AUDIO ? 'Posição no áudio' : 'Progresso'}</dt>
+            <dd className="tabular">
+              {describeSessionProgress(session)}
+              {session.speed ? <small> · {formatSpeed(session.speed)}</small> : null}
+            </dd>
+          </div>
+        )}
+        {session.mood && (
+          <div>
+            <dt>Como foi</dt>
+            <dd>{MOOD_LABELS[session.mood]}</dd>
+          </div>
+        )}
       </dl>
 
       {divergence && (
@@ -253,7 +301,10 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
           <dl className="vocabulary-list">
             {vocabulary.map((item, index) => (
               <div key={`${item.term}-${index}`}>
-                <dt>{item.term}</dt>
+                <dt>
+                  {item.term}
+                  {item.anchor && <small className="session-dialog__anchor"> · {formatAnchor(item.anchor)}</small>}
+                </dt>
                 {item.meaning && <dd>{item.meaning}</dd>}
               </div>
             ))}
@@ -267,6 +318,28 @@ function SessionDialogContent({ session, book, onClose, initialMode }) {
           </p>
         )}
       </section>
+
+      {['quote', 'idea', 'question'].map((type) => {
+        const items = annotations.filter((a) => a.type === type);
+        if (items.length === 0) return null;
+        return (
+          <section key={type} className="session-dialog__notes" aria-label={NOTEBOOK_LABELS[type]}>
+            <h3 className="session-dialog__subtitle">
+              {NOTEBOOK_LABELS[type]} <span className="session-dialog__count"> · {items.length}</span>
+            </h3>
+            <ul className="session-dialog__annotations">
+              {items.map((a) => (
+                <li key={a.id} className={a.resolved ? 'is-resolved' : undefined}>
+                  {a.anchor && <span className="session-dialog__anchor tabular">{formatAnchor(a.anchor)}</span>}{' '}
+                  <span className={type === 'quote' ? 'session-dialog__quote' : undefined}>{type === 'quote' ? `“${a.text}”` : a.text}</span>
+                  {a.note && <small className="session-dialog__muted"> — {a.note}</small>}
+                  {type === 'question' && <small className="session-dialog__muted"> · {a.resolved ? 'resolvida' : 'em aberto'}</small>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
 
       <p className="session-dialog__muted">
         Livro: <Link to={ROUTES.book(book.id)}>{book.title}</Link>

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createExportPayload, exportFileName, parseImportText } from './dataTransfer.js';
-import { createEmptyData, SCHEMA_VERSION } from './schema.js';
+import { createEmptyData, normalizeData, SCHEMA_VERSION } from './schema.js';
 import { createDemoData } from '../../data/demoData.js';
 
 const NOW = new Date(2026, 9, 15, 10);
@@ -17,7 +17,9 @@ test('exportar e importar de volta preserva tudo', () => {
   assert.equal(result.ok, true);
   assert.equal(result.data.books.length, 3);
   assert.equal(result.data.sessions.length, 25);
-  assert.deepEqual(result.data.sessions[0], state.sessions[0]);
+  // Os campos novos (formato, anotações...) ganham o valor padrão na importação.
+  assert.deepEqual(result.data.sessions[0], normalizeData(state).data.sessions[0]);
+  assert.deepEqual(result.data.books, normalizeData(state).data.books);
   assert.equal(result.summary.finished, 2);
   assert.equal(exportFileName(NOW), 'readtrack-backup-2026-10-15.json');
 });

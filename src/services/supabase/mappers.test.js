@@ -31,6 +31,13 @@ const book = {
   learnings: 'A linguagem também pode ser seca.',
   addedAsRead: false,
   contentStartPage: 9,
+  format: 'print',
+  progressMode: 'pages',
+  progressPercent: 0,
+  audioDurationSeconds: null,
+  audioPositionSeconds: 0,
+  narrator: '',
+  audioSpeed: null,
   createdAt: '2026-08-30T10:00:00.000Z',
   updatedAt: '2026-09-20T12:00:00.000Z',
   isDemo: false,
@@ -69,8 +76,16 @@ test('sessão: ida e volta preserva páginas, duração, intervalos e observaç�
     pagesRead: 32,
     newPages: 32,
     notes: 'Capítulo da cachorra Baleia.',
-    vocabulary: [{ term: 'Alpercata', meaning: 'Sandália de couro.' }],
+    vocabulary: [{ term: 'Alpercata', meaning: 'Sandália de couro.', anchor: { kind: 'page', value: 20 } }],
     source: 'timer',
+    progressKind: 'pages',
+    startPercent: null,
+    endPercent: null,
+    startPositionSeconds: null,
+    endPositionSeconds: null,
+    speed: null,
+    annotations: [{ id: 'a1', type: 'quote', text: 'Baleia queria dormir.', note: '', anchor: { kind: 'page', value: 40 }, createdAt: null }],
+    mood: 'focused',
     createdAt: '2026-09-02T23:10:00.000Z',
     isDemo: false,
   };
@@ -99,6 +114,10 @@ test('perfil: preferências e metas, com valores padrão se não houver linha', 
     week_starts_on: 'sunday',
     text_size: 'large',
     motion: 'reduce',
+    theme: 'dark',
+    accent: '#8B7CFF',
+    format_colors: { print: '#FFB054', digital: '#5CC8FF', audio: '#FF6FA8' },
+    avatar_url: '',
     daily_minutes_goal: null,
     weekly_pages_goal: 300,
   });
@@ -133,4 +152,36 @@ test('sessão manual: duração e término desconhecidos ficam null (nada invent
   assert.equal(row.finished_at, null);
   assert.equal(row.source, 'manual');
   assert.equal(rowToSession(row).durationSeconds, null);
+});
+
+test('audiobook e sessão de áudio: posição, duração e velocidade vão e voltam', () => {
+  const audio = { ...book, id: 'book_a', format: 'audio', status: 'reading', finishedAt: null, totalPages: null, currentPage: 0, contentStartPage: null, audioDurationSeconds: 34200, audioPositionSeconds: 7800, narrator: 'Ana', audioSpeed: 1.25 };
+  const row = bookToRow(audio, USER);
+  assert.equal(row.format, 'audio');
+  assert.equal(row.audio_duration_seconds, 34200);
+  // O PostgREST devolve numeric como texto ou número: os dois funcionam.
+  assert.deepEqual(rowToBook({ ...row, audio_speed: '1.25' }), audio);
+
+  const session = {
+    id: 's_a', bookId: 'book_a', startedAt: '2026-09-02T22:00:00.000Z', finishedAt: '2026-09-02T22:40:00.000Z',
+    durationSeconds: 2400, pausedSeconds: 0, pauseCount: 0, segments: [], startPage: 0, endPage: 0, pagesRead: 0, newPages: 0,
+    notes: '', vocabulary: [], source: 'timer', progressKind: 'audio', startPercent: null, endPercent: null,
+    startPositionSeconds: 4800, endPositionSeconds: 7800, speed: 1.5, annotations: [], mood: null,
+    createdAt: '2026-09-02T22:40:00.000Z', isDemo: false,
+  };
+  const sRow = sessionToRow(session, USER);
+  assert.equal(sRow.progress_kind, 'audio');
+  assert.equal(sRow.pages_read, 0);
+  assert.deepEqual(rowToSession(sRow), session);
+});
+
+test('perfil: tema, destaque, cores dos formatos e foto', () => {
+  const settings = { theme: 'light', accent: '#3dd6c6', formatColors: { audio: '#123456' }, avatarUrl: 'data:image/jpeg;base64,AAAA' };
+  const row = profileToRow({ settings, goals: {} }, USER);
+  assert.equal(row.theme, 'light');
+  assert.equal(row.accent, '#3DD6C6');
+  assert.deepEqual(row.format_colors, { print: '#FFB054', digital: '#5CC8FF', audio: '#123456' });
+  const back = rowToProfile(row).settings;
+  assert.equal(back.avatarUrl, 'data:image/jpeg;base64,AAAA');
+  assert.equal(profileToRow({ settings: { avatarUrl: 'javascript:alert(1)' }, goals: {} }, USER).avatar_url, '', 'foto inválida é descartada');
 });

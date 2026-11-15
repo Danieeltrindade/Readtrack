@@ -15,7 +15,7 @@ const NOW = new Date(2026, 9, 16, 12, 0);
 test('só o título é obrigatório; vazios ficam vazios (nada inventado)', () => {
   const r = validatePastBookForm({ title: '  Grande Sertão  ' }, NOW);
   assert.equal(r.valid, true);
-  assert.deepEqual(r.data, { title: 'Grande Sertão', author: '', totalPages: null, finishedAt: null, rating: null, review: '', learnings: '' });
+  assert.deepEqual(r.data, { title: 'Grande Sertão', author: '', totalPages: null, finishedAt: null, format: 'print', rating: null, review: '', learnings: '' });
   assert.ok(validatePastBookForm({ title: '' }, NOW).errors.title);
   assert.ok(validatePastBookForm({ title: 'X', totalPages: '0' }, NOW).errors.totalPages);
   assert.ok(validatePastBookForm({ title: 'X', totalPages: '-3' }, NOW).errors.totalPages);

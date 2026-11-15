@@ -10,8 +10,10 @@ import { evaluateAchievements, findNewAchievements, findStaleAchievements } from
 import { validateGoalsForm } from '../utils/goals.js';
 import { normalizeSettings } from '../utils/settings.js';
 import { createId } from '../utils/id.js';
+import { getProgressKind } from '../utils/formats.js';
+import { toggleQuestionResolved } from '../utils/annotations.js';
 import { applyFinalReview, createBook, createPastBook, updateBook as applyBookUpdate, updatePastBook } from '../utils/books.js';
-import { buildManualSession, buildSession, getMeasuredSeconds, getTimerStartPage } from '../utils/sessions.js';
+import { buildManualSession, buildSession, getMeasuredSeconds, getTimerStartPage, getTimerStartPosition } from '../utils/sessions.js';
 import { isManualSession } from '../utils/pages.js';
 import { createActiveSession, getElapsedSeconds } from '../utils/timer.js';
 import {
@@ -137,6 +139,11 @@ export function DataProvider({ children, persistence: persistenceProp }) {
       allowMissingAuthor: !current.author,
     });
     if (!valid) return fail(errors);
+    // Com sessões registradas, o jeito de medir o progresso não muda.
+    const hasSessions = stateRef.current.sessions.some((s) => s.bookId === id);
+    if (hasSessions && getProgressKind(parsed) !== getProgressKind(current)) {
+      return fail({ format: 'Este livro já tem sessões medidas de outro jeito. Crie um novo livro para outro formato.' });
+    }
     const book = applyBookUpdate(current, parsed, new Date());
     dispatch({ type: ACTIONS.UPDATE_BOOK, payload: book });
     return { ok: true, book };
@@ -193,12 +200,16 @@ export function DataProvider({ children, persistence: persistenceProp }) {
     if (book.status === 'finished') {
       return { ok: false, error: 'Este livro está concluído. Mude o status para "Lendo" para registrar uma nova leitura.' };
     }
-    const active = createActiveSession({
-      id: createId('session'),
-      bookId,
-      startPage: getTimerStartPage(book),
-      now: new Date(),
-    });
+    const active = {
+      ...createActiveSession({
+        id: createId('session'),
+        bookId,
+        startPage: getTimerStartPage(book),
+        now: new Date(),
+      }),
+      // E-book por % e audiobook: onde a sessão começa (porcentagem ou posição no áudio).
+      ...getTimerStartPosition(book),
+    };
     dispatch({ type: ACTIONS.START_SESSION, payload: active });
     return { ok: true };
   }, []);
@@ -269,12 +280,27 @@ export function DataProvider({ children, persistence: persistenceProp }) {
     });
     if (!valid) return fail(errors);
     // Vocabulário (opcional) também nas sessões do cronômetro.
-    const vocabulary = values.vocabularyText === undefined ? session.vocabulary ?? [] : parseVocabularyText(values.vocabularyText);
+    const vocabulary = Array.isArray(parsed.vocabulary)
+      ? parsed.vocabulary
+      : values.vocabularyText === undefined
+        ? session.vocabulary ?? []
+        : parseVocabularyText(values.vocabularyText);
     const vocabularyError = validateVocabulary(vocabulary);
     if (vocabularyError) return fail({ vocabularyText: vocabularyError });
     const next = { ...session, ...parsed, vocabulary, updatedAt: now.toISOString() };
     dispatch({ type: ACTIONS.UPDATE_SESSION, payload: { session: next, now } });
     return { ok: true, session: next };
+  }, []);
+
+  /** Caderno: marca/desmarca uma dúvida como resolvida. */
+  const toggleQuestion = useCallback((sessionId, annotationId) => {
+    const session = stateRef.current.sessions.find((s) => s.id === sessionId);
+    if (!session) return fail({ form: 'Esta sessão não existe mais.' });
+    const next = toggleQuestionResolved(session, annotationId);
+    if (!next) return fail({ form: 'Esta dúvida não existe mais.' });
+    const now = new Date();
+    dispatch({ type: ACTIONS.UPDATE_SESSION, payload: { session: { ...next, updatedAt: now.toISOString() }, now } });
+    return { ok: true };
   }, []);
 
   /** Remove só a observação; a sessão continua. */
@@ -444,6 +470,7 @@ export function DataProvider({ children, persistence: persistenceProp }) {
       importHistory,
       prepareHistoryImport,
       removeSessionNotes,
+      toggleQuestion,
       deleteSession,
       resetDemo,
       removeDemo,
@@ -479,6 +506,7 @@ export function DataProvider({ children, persistence: persistenceProp }) {
       importHistory,
       prepareHistoryImport,
       removeSessionNotes,
+      toggleQuestion,
       deleteSession,
       resetDemo,
       removeDemo,

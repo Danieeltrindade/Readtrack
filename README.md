@@ -2,7 +2,7 @@
 
 **Acompanhamento pessoal de leitura.** Cadastre seus livros (inclusive os que você leu antes de usar o app), cronometre as sessões de leitura, registre observações e acompanhe histórico, estatísticas, metas e conquistas.
 
-Site web responsivo (celular, tablet e desktop) feito com React + Vite, com contas e banco de dados no Supabase (Auth + PostgreSQL + Row Level Security) e publicação automática no GitHub Pages. Versão **1.6.0**.
+Site web responsivo (celular, tablet e desktop) feito com React + Vite, com contas e banco de dados no Supabase (Auth + PostgreSQL + Row Level Security) e publicação automática no GitHub Pages. Versão **1.7.0**.
 
 <!-- Depois de publicar, troque pelo endereço real (veja a Etapa D): -->
 **Site:** _https://SEU-USUARIO.github.io/SEU-REPOSITORIO/_
@@ -42,6 +42,16 @@ Outras rotas: `/login`, `/register`, `/forgot-password` (pedir link de nova senh
 - [Limitações conhecidas](#limitações-conhecidas)
 
 ## Funcionalidades
+
+**Formatos de leitura e caderno de anotações (1.7.0)**
+- **Três formatos:** livro **físico**, **e-book ou PDF** e **audiobook**, escolhidos no cadastro ("Como você vai ler?"). Livros antigos continuam como físicos, sem nenhuma mudança.
+- **E-book/PDF** por páginas (como o físico; ideal para PDF) ou **por porcentagem** (Kindle e e-readers): o progresso é a % do leitor.
+- **Audiobook:** duração total, posição atual (h:mm:ss), narrador e velocidade habitual. Cada sessão registra a posição inicial e final no áudio e a velocidade.
+- Porcentagem e áudio **não viram páginas**: essas sessões contam no tempo, nas sessões, na sequência, nas metas de minutos e nos livros concluídos, mas não nas páginas nem na meta de páginas. Nenhuma página é deduzida.
+- **Caderno da sessão** ao finalizar (e ao editar ou registrar uma sessão manual): abas **Resumo**, **Citações** (trecho + comentário), **Vocabulário** (palavra + significado), **Ideias** e **Dúvidas**, cada anotação com a página, a % ou o momento do áudio. O que ficou digitado sem "Adicionar" também é salvo. "Como foi?" (concentrado, normal, distraído, cansado) é opcional.
+- **Caderno** (menu): tudo o que foi anotado, de todos os livros, com busca, filtro por tipo e por livro, visão em lista ou por livro, dúvidas marcadas como resolvidas, "Relembre" (uma citação salva) e **exportação em Markdown**.
+- Biblioteca com filtro por formato; selos de formato no livro, no cronômetro e na biblioteca.
+- Com sessões registradas, o jeito de medir o progresso de um livro não muda (páginas, % ou áudio), para não misturar medidas.
 
 **Página inicial, demonstração e contas (1.6.0)**
 - Página inicial pública com a proposta do ReadTrack e as três opções. Quem já está logado vê "Continuar como …".
@@ -327,6 +337,15 @@ Tem um **histórico anotado à mão** (formato `readtrack-history-import`)? Use 
 
 **Recuperar um backup:** exporte com frequência em **Configurações → Exportar JSON** e guarde o arquivo fora do projeto. Antes de cada importação ou limpeza, o app também guarda uma cópia dos dados atuais **neste navegador** (as 5 mais recentes). Para voltar a um backup, importe o arquivo com **Substituir tudo**.
 
+### Atualizar da 1.6.0 para a 1.7.0
+
+A 1.7.0 acrescenta colunas ao banco (formato do livro, progresso por % e por áudio, anotações das sessões e aparência do perfil). **Antes de publicar** o site novo:
+
+1. Supabase → **SQL Editor** → cole o arquivo inteiro e **Run**: num projeto só do ReadTrack, `supabase/schema.sql`; num projeto compartilhado (Etapa B2), `supabase/compartilhado/readtrack.sql`. É aditivo: nenhum livro ou sessão é alterado ou apagado, e pode ser executado mais de uma vez.
+2. Depois envie o código (`git push`) e acompanhe a aba **Actions**.
+
+Se o site novo for publicado antes do SQL, as gravações falham com aviso de erro (nada é perdido no banco); rode o SQL e recarregue a página.
+
 ### Etapa G — Atualizações futuras
 
 1. Faça as alterações e teste localmente: `npm run dev`.
@@ -351,7 +370,7 @@ O SQL completo está em [`supabase/schema.sql`](supabase/schema.sql) (num projet
 | `active_sessions` | Cronômetro em andamento (no máximo um por usuário). | `user_id`, FK `(user_id, book_id)` |
 | `achievements` | Conquistas desbloqueadas e a data. | `(user_id, achievement_id)` |
 
-Índices: `(user_id, status)` e `(user_id, updated_at)` em livros; `(user_id, book_id)` e `(user_id, started_at desc)` em sessões; `(user_id, book_id)` no cronômetro. Regras no banco: página atual ≤ total, páginas lidas coerentes com a convenção da sessão, término depois do início, duração ≤ 24 h, avaliação 1–5, data de conclusão só em livro concluído, limites de tamanho de texto e, desde a 1.6.0, **nenhum registro de demonstração** (`books_no_demo`, `sessions_no_demo`).
+Índices: `(user_id, status)` e `(user_id, updated_at)` em livros; `(user_id, book_id)` e `(user_id, started_at desc)` em sessões; `(user_id, book_id)` no cronômetro. Regras no banco: página atual ≤ total, páginas lidas coerentes com a convenção da sessão (desde a 1.7.0, sessões por % ou por áudio têm páginas zeradas, % de 0 a 100 sem recuar e posição no áudio até 100 h; porcentagem só em e-book; posição do audiobook ≤ duração; até 200 anotações por sessão; foto do perfil só como imagem reduzida pelo site), término depois do início, duração ≤ 24 h, avaliação 1–5, data de conclusão só em livro concluído, limites de tamanho de texto e, desde a 1.6.0, **nenhum registro de demonstração** (`books_no_demo`, `sessions_no_demo`).
 
 **Segurança**
 - **RLS ligada em todas as tabelas**, com políticas de leitura, criação, alteração e exclusão restritas a `user_id = auth.uid()`. Trocar ids na chamada da API não dá acesso a dados de outra conta: a chave estrangeira composta impede até ligar uma sessão ao livro de outra pessoa.
@@ -367,7 +386,7 @@ O dicionário foi removido na v1.3. Bancos antigos ainda podem ter a tabela `dic
 
 ## Backup e importação
 
-**Formato** (`readtrack-backup`, versão 1, sem mudanças na 1.6.0 — arquivos exportados por versões anteriores continuam válidos):
+**Formato** (`readtrack-backup`, versão 1 — arquivos exportados por versões anteriores continuam válidos; na 1.7.0, livros e sessões ganham campos opcionais de formato, progresso por %/áudio e anotações, que ficam com o valor padrão quando não existem):
 
 ```json
 { "format": "readtrack-backup", "formatVersion": 1, "app": "ReadTrack", "exportedAt": "…", "schemaVersion": 2,
@@ -407,6 +426,13 @@ O dicionário foi removido na v1.3. Bancos antigos ainda podem ter a tabela `dic
 - O progresso do livro é a maior página alcançada, nunca a soma das sessões.
 - Ao editar ou excluir uma sessão: as páginas novas das sessões daquele livro são recalculadas em ordem cronológica (cada sessão conta só o que passou da sua página inicial e do que as anteriores já cobriram); a página atual acompanha as sessões, sem recuar abaixo da página em que a sessão alterada começou e sem desfazer progresso registrado à mão. Livro concluído continua concluído.
 - **Páginas registradas** incluem releitura. **Páginas novas** contam só o avanço nos livros.
+
+### E-book por porcentagem e audiobook (1.7.0)
+
+- **Porcentagem:** cada sessão guarda a % inicial e a final (a final não pode ser menor). O progresso do livro é a maior % alcançada; 100% oferece concluir o livro.
+- **Áudio:** cada sessão guarda a posição inicial e a final no áudio (a final precisa ser depois da inicial e no máximo a duração). O progresso é a maior posição ÷ duração; chegar ao fim oferece concluir.
+- Como nas páginas, editar ou excluir uma sessão recalcula a posição do livro sem recuar abaixo do início da sessão alterada e sem desfazer o que foi informado à mão. Livro concluído fica em 100% / no fim do áudio.
+- Essas sessões têm páginas = 0: o tempo conta normalmente; páginas, ritmo em páginas e meta de páginas não mudam.
 
 ### Médias, ritmo e comparação
 

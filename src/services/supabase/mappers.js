@@ -50,10 +50,19 @@ export function bookToRow(book, userId) {
     rating: book.rating ?? null,
     review: book.review ?? '',
     learnings: book.learnings ?? '',
+    format: book.format ?? 'print',
+    progress_mode: book.progressMode ?? 'pages',
+    progress_percent: book.progressPercent ?? 0,
+    audio_duration_seconds: book.audioDurationSeconds ?? null,
+    audio_position_seconds: book.audioPositionSeconds ?? 0,
+    narrator: book.narrator ?? '',
+    audio_speed: book.audioSpeed ?? null,
     is_demo: Boolean(book.isDemo),
     ...timestamps(book),
   };
 }
+
+const numberOrNull = (value) => (value === null || value === undefined || value === '' ? null : Number(value));
 
 export function rowToBook(row) {
   const book = {
@@ -72,6 +81,13 @@ export function rowToBook(row) {
     rating: row.rating ?? null,
     review: row.review ?? '',
     learnings: row.learnings ?? '',
+    format: row.format ?? 'print',
+    progressMode: row.progress_mode ?? 'pages',
+    progressPercent: row.progress_percent ?? 0,
+    audioDurationSeconds: row.audio_duration_seconds ?? null,
+    audioPositionSeconds: row.audio_position_seconds ?? 0,
+    narrator: row.narrator ?? '',
+    audioSpeed: numberOrNull(row.audio_speed),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     isDemo: Boolean(row.is_demo),
@@ -100,6 +116,14 @@ export function sessionToRow(session, userId) {
     pages_read: session.pagesRead,
     new_pages: session.newPages ?? 0,
     notes: session.notes ?? '',
+    progress_kind: session.progressKind ?? 'pages',
+    start_percent: session.startPercent ?? null,
+    end_percent: session.endPercent ?? null,
+    start_position_seconds: session.startPositionSeconds ?? null,
+    end_position_seconds: session.endPositionSeconds ?? null,
+    speed: session.speed ?? null,
+    annotations: Array.isArray(session.annotations) ? session.annotations : [],
+    mood: session.mood ?? null,
     is_demo: Boolean(session.isDemo),
     ...timestamps({ createdAt: session.createdAt }),
   };
@@ -122,6 +146,14 @@ export function rowToSession(row) {
     pagesRead: row.pages_read,
     newPages: row.new_pages ?? 0,
     notes: row.notes ?? '',
+    progressKind: row.progress_kind ?? 'pages',
+    startPercent: row.start_percent ?? null,
+    endPercent: row.end_percent ?? null,
+    startPositionSeconds: row.start_position_seconds ?? null,
+    endPositionSeconds: row.end_position_seconds ?? null,
+    speed: numberOrNull(row.speed),
+    annotations: Array.isArray(row.annotations) ? row.annotations : [],
+    mood: row.mood ?? null,
     createdAt: row.created_at,
     isDemo: Boolean(row.is_demo),
   };
@@ -154,6 +186,10 @@ export function profileToRow({ settings, goals }, userId) {
     week_starts_on: s.weekStartsOn,
     text_size: s.textSize,
     motion: s.motion,
+    theme: s.theme,
+    accent: s.accent,
+    format_colors: s.formatColors,
+    avatar_url: s.avatarUrl,
     daily_minutes_goal: g.dailyMinutes,
     weekly_pages_goal: g.weeklyPages,
   };
@@ -167,6 +203,10 @@ export function rowToProfile(row) {
       weekStartsOn: row.week_starts_on,
       textSize: row.text_size,
       motion: row.motion,
+      theme: row.theme,
+      accent: row.accent,
+      formatColors: row.format_colors,
+      avatarUrl: row.avatar_url,
     }),
     goals: normalizeGoals({ dailyMinutes: row.daily_minutes_goal, weeklyPages: row.weekly_pages_goal }),
   };

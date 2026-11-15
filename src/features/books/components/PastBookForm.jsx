@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { BookCheck, Save } from 'lucide-react';
 import { BookCover, Button, Field, PageHeader } from '../../../components/ui';
+import { FORMAT_LABELS, FORMAT_LIST } from '../../../utils/formats.js';
 import { usePaths } from '../../../hooks/useWorkspace.js';
 import { useData } from '../../../hooks/useData.js';
 import { useToast } from '../../../hooks/useToast.js';
@@ -120,6 +121,15 @@ export function PastBookForm({ book }) {
             </Field>
             <Field label="Autor" error={errorFor('author')}>
               <input className="input" maxLength={LIMITS.author + 20} autoComplete="off" {...bind('author')} />
+            </Field>
+            <Field label="Formato" required>
+              <select className="select" {...bind('format')}>
+                {FORMAT_LIST.map((format) => (
+                  <option key={format} value={format}>
+                    {FORMAT_LABELS[format]}
+                  </option>
+                ))}
+              </select>
             </Field>
             <div className="book-form__row">
               <Field label="Total de páginas" error={errorFor('totalPages')} hint="Deixe em branco se não souber.">

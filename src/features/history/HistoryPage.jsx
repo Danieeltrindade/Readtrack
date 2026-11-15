@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { BookA, BookOpenText, CalendarPlus, Clock, FileUp, History, NotebookPen, Search, SearchX, Timer, X } from 'lucide-react';
-import { Button, EmptyState, PageHeader } from '../../components/ui';
+import { Button, EmptyState, FormatIcon, PageHeader } from '../../components/ui';
+import { describeSessionProgress, getSessionKind } from '../../utils/formats.js';
 import { usePaths } from '../../hooks/useWorkspace.js';
 import { useData } from '../../hooks/useData.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -257,13 +258,24 @@ function SessionRow({ session, book, onOpen }) {
           <span>
             <Clock size={14} aria-hidden="true" /> {formatSessionPeriod(session)} · <SessionDuration session={session} />
           </span>
-          <span>
-            <BookOpenText size={14} aria-hidden="true" /> p. {formatNumber(session.startPage)}–{formatNumber(session.endPage)} ·{' '}
-            {pluralize(session.pagesRead, 'página')}
-          </span>
+          {getSessionKind(session) === 'pages' ? (
+            <span>
+              <BookOpenText size={14} aria-hidden="true" /> p. {formatNumber(session.startPage)}–{formatNumber(session.endPage)} ·{' '}
+              {pluralize(session.pagesRead, 'página')}
+            </span>
+          ) : (
+            <span>
+              <FormatIcon format={book.format} size={14} /> {describeSessionProgress(session)}
+            </span>
+          )}
           {session.vocabulary?.length > 0 && (
             <span>
               <BookA size={14} aria-hidden="true" /> {pluralize(session.vocabulary.length, 'palavra')}
+            </span>
+          )}
+          {session.annotations?.length > 0 && (
+            <span>
+              <NotebookPen size={14} aria-hidden="true" /> {pluralize(session.annotations.length, 'anotação', 'anotações')}
             </span>
           )}
         </p>

@@ -9,6 +9,15 @@ import { useActiveSession } from '../../../hooks/useActiveSession.js';
 import { formatDuration, formatNumber, formatRelativeDay, formatTime, pluralize } from '../../../utils/format.js';
 import { getDashboardSummary } from '../../../utils/stats.js';
 import { TimerDisplay } from './TimerDisplay.jsx';
+import { FormatBadge } from '../../../components/ui/FormatBadge.jsx';
+import { PROGRESS_KINDS, formatAudioPosition, getProgressKind } from '../../../utils/formats.js';
+
+function startLabel(active, book) {
+  const kind = getProgressKind(book);
+  if (kind === PROGRESS_KINDS.AUDIO) return `a partir de ${formatAudioPosition(active.startPositionSeconds ?? book.audioPositionSeconds ?? 0)} do áudio`;
+  if (kind === PROGRESS_KINDS.PERCENT) return `a partir de ${active.startPercent ?? book.progressPercent ?? 0}%`;
+  return `a partir da página ${formatNumber(active.startPage)}`;
+}
 
 /** Cronômetro em andamento ou pausado, com os controles. */
 export function TimerPanel() {
@@ -46,7 +55,9 @@ export function TimerPanel() {
           <h2 className="timer-panel__title">
             <Link to={ROUTES.book(book.id)}>{book.title}</Link>
           </h2>
-          <p className="timer-panel__author">{book.author}</p>
+          <p className="timer-panel__author">
+            {book.author} <FormatBadge format={book.format} />
+          </p>
         </div>
       </div>
 
@@ -58,7 +69,7 @@ export function TimerPanel() {
         </p>
         <p className="timer-panel__meta">
           Iniciada {formatRelativeDay(active.startedAt) === 'hoje' ? '' : `${formatRelativeDay(active.startedAt)} `}às{' '}
-          {formatTime(active.startedAt)}, a partir da página {formatNumber(active.startPage)}
+          {formatTime(active.startedAt)}, {startLabel(active, book)}
           {pauseCount > 0 && `. ${pluralize(pauseCount, 'pausa')}, ${formatDuration(pausedSeconds)} pausado`}
         </p>
       </div>

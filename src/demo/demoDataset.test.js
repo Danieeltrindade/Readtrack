@@ -24,7 +24,7 @@ test('demonstração: dados válidos para o app, nenhum descartado e nada no fut
     assert.equal(normalized.sessions.length, data.sessions.length);
     for (const s of data.sessions) {
       assert.ok(new Date(s.finishedAt ?? s.startedAt) <= now, `sessão no futuro: ${s.id}`);
-      assert.ok(s.pagesRead > 0);
+      assert.ok(s.pagesRead > 0 || (s.progressKind !== 'pages' && s.durationSeconds > 0));
     }
   }
 });
@@ -55,8 +55,25 @@ test('demonstração: livros em todos os estados, observações, vocabulário e 
   assert.ok(midnight, 'uma leitura atravessa a meia-noite');
   assert.ok(calculateElapsedSeconds(midnight.startedAt, midnight.finishedAt) > 0);
   // O livro em andamento não chega ao fim.
-  const reading = data.books.find((b) => b.status === 'reading');
+  const reading = data.books.find((b) => b.status === 'reading' && b.format !== 'audio');
   assert.ok(reading.currentPage < reading.totalPages);
+});
+
+test('demonstração (1.7.0): e-book por %, audiobook e caderno de anotações', () => {
+  for (const now of NOWS) {
+    const { data } = normalizeData(createDemoWorkspaceData(now));
+    const ebook = data.books.find((b) => b.format === 'digital' && b.progressMode === 'percent');
+    const audio = data.books.find((b) => b.format === 'audio');
+    assert.ok(ebook && ebook.status === 'finished' && ebook.progressPercent === 100);
+    assert.ok(audio && audio.status === 'reading' && audio.audioPositionSeconds > 0 && audio.audioPositionSeconds < audio.audioDurationSeconds);
+    const ebookSessions = data.sessions.filter((s) => s.bookId === ebook.id);
+    assert.equal(Math.max(...ebookSessions.map((s) => s.endPercent)), 100);
+    const audioSessions = data.sessions.filter((s) => s.bookId === audio.id);
+    assert.equal(Math.max(...audioSessions.map((s) => s.endPositionSeconds)), audio.audioPositionSeconds);
+    for (const s of [...ebookSessions, ...audioSessions]) assert.equal(s.pagesRead + s.newPages + s.startPage + s.endPage, 0, 'sem páginas inventadas');
+    const types = new Set(data.sessions.flatMap((s) => s.annotations.map((a) => a.type)));
+    assert.deepEqual([...types].sort(), ['idea', 'question', 'quote']);
+  }
 });
 
 test('demonstração: há dados para mês, 3 meses, histórico total e os últimos 7 dias', () => {

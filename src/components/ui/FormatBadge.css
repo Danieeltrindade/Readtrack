@@ -1,0 +1,21 @@
+.format-badge {
+  --format-color: var(--format-print);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px 2px 7px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--format-color);
+  background: color-mix(in srgb, var(--format-color) 14%, transparent);
+}
+
+.format-badge--digital {
+  --format-color: var(--format-digital);
+}
+
+.format-badge--audio {
+  --format-color: var(--format-audio);
+}

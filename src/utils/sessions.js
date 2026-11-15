@@ -20,6 +20,28 @@
 import { applyStatusChange } from './books.js';
 import { getFinishedAt, getPauseCount, getPausedSeconds } from './timer.js';
 import { SESSION_SOURCES, computeNewPagesByUnion, getContentStart, getPageBefore, withRecomputedNewPages } from './pages.js';
+import {
+  PROGRESS_KINDS,
+  applyKindProgress,
+  clampPercent,
+  getProgressKind,
+  getSessionKind,
+  maxSessionPosition,
+  sessionStartPosition,
+  withFinishedPosition,
+} from './formats.js';
+
+/** Campos de progresso (porcentagem/áudio) e do caderno vindos da validação. */
+function kindFields(data) {
+  return {
+    progressKind: data.progressKind ?? PROGRESS_KINDS.PAGES,
+    startPercent: data.startPercent ?? null,
+    endPercent: data.endPercent ?? null,
+    startPositionSeconds: data.startPositionSeconds ?? null,
+    endPositionSeconds: data.endPositionSeconds ?? null,
+    speed: data.speed ?? null,
+  };
+}
 
 /** Calcula páginas lidas e páginas novas para um intervalo. */
 export function calculateSessionPages({ startPage, endPage, previousProgress = 0 }) {
@@ -54,7 +76,10 @@ export function buildSession(active, data, { book, now = new Date() }) {
     pagesRead,
     newPages,
     notes: data.notes,
-    vocabulary: [],
+    vocabulary: data.vocabulary ?? [],
+    annotations: data.annotations ?? [],
+    mood: data.mood ?? null,
+    ...kindFields(data),
     source: SESSION_SOURCES.TIMER,
     createdAt: new Date(now).toISOString(),
     isDemo: false,
@@ -78,6 +103,7 @@ export function applySessionToBook(book, session, { markFinished = false } = {})
     next = { ...applyStatusChange(next, 'reading', session.startedAt), updatedAt: session.finishedAt };
   }
   if (!next.startedAt) next.startedAt = session.startedAt;
+  next = applyKindProgress(next, session);
   if (markFinished && next.status !== 'finished') {
     next = { ...applyStatusChange(next, 'finished', session.finishedAt), updatedAt: session.finishedAt };
   }
@@ -150,8 +176,27 @@ export function applySessionChange({ book, sessions, change, now = new Date() })
     if (book.totalPages) currentPage = Math.min(book.totalPages, currentPage);
   }
 
-  const nextBook = currentPage === book.currentPage ? book : { ...book, currentPage, updatedAt: new Date(now).toISOString() };
+  let nextBook = currentPage === book.currentPage ? book : { ...book, currentPage, updatedAt: new Date(now).toISOString() };
+  nextBook = recomputeKindPosition(nextBook, { old, before: bookSessionsBefore, after: bookSessionsAfter, now });
   return { book: nextBook, sessions: finalSessions };
+}
+
+/**
+ * Mesma regra do marcador de páginas para porcentagem e áudio: a posição
+ * acompanha as sessões, sem recuar abaixo do início da sessão alterada e
+ * sem desfazer uma posição registrada à mão além das sessões.
+ */
+function recomputeKindPosition(book, { old, before, after, now }) {
+  const kind = getProgressKind(book);
+  if (kind === PROGRESS_KINDS.PAGES || getSessionKind(old) !== kind) return book;
+  if (book.status === 'finished') return withFinishedPosition(book);
+  const field = kind === PROGRESS_KINDS.PERCENT ? 'progressPercent' : 'audioPositionSeconds';
+  const current = kind === PROGRESS_KINDS.PERCENT ? clampPercent(book[field]) : Number(book[field]) || 0;
+  const maxBefore = maxSessionPosition(before, kind);
+  const maxAfter = maxSessionPosition(after, kind);
+  let value = current > maxBefore ? Math.max(current, maxAfter) : Math.max(maxAfter, sessionStartPosition(old));
+  if (kind === PROGRESS_KINDS.AUDIO && book.audioDurationSeconds) value = Math.min(book.audioDurationSeconds, value);
+  return value === current ? book : { ...book, [field]: value, updatedAt: new Date(now).toISOString() };
 }
 
 /* ---------- Sessões novas (registro manual e importação) ---------- */
@@ -183,11 +228,20 @@ export function applyAddedSessions({ books, sessions, added, now = new Date() })
       next.currentPage = Math.max(book.currentPage, book.totalPages ? Math.min(book.totalPages, maxEnd) : maxEnd);
       if (book.status === 'want-to-read') next.status = 'reading';
       next.startedAt = minIso(book.startedAt, earliest);
+      for (const session of own) next = applyKindProgress(next, session);
     }
     nextSessions = withRecomputedNewPages(nextSessions, next);
     return next;
   });
   return { books: nextBooks, sessions: nextSessions, added: fresh };
+}
+
+/** Posição em que uma nova sessão do cronômetro começa, no tipo de progresso do livro. */
+export function getTimerStartPosition(book) {
+  const kind = getProgressKind(book);
+  if (kind === PROGRESS_KINDS.PERCENT) return { progressKind: kind, startPercent: clampPercent(book.progressPercent) };
+  if (kind === PROGRESS_KINDS.AUDIO) return { progressKind: kind, startPositionSeconds: Math.max(0, Number(book.audioPositionSeconds) || 0) };
+  return { progressKind: kind };
 }
 
 /** Página em que uma nova sessão do cronômetro começa (respeita o início do conteúdo). */
@@ -217,7 +271,10 @@ export function buildManualSession(data, { id, now = new Date() }) {
     pagesRead: data.pagesRead,
     newPages: data.pagesRead,
     notes: data.notes,
-    vocabulary: data.vocabulary,
+    vocabulary: data.vocabulary ?? [],
+    annotations: data.annotations ?? [],
+    mood: data.mood ?? null,
+    ...kindFields(data),
     source: SESSION_SOURCES.MANUAL,
     createdAt: new Date(now).toISOString(),
     isDemo: false,

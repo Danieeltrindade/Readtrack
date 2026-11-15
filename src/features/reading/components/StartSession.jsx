@@ -8,7 +8,8 @@ import { useToast } from '../../../hooks/useToast.js';
 import { getReadableBooks } from '../../../utils/sessions.js';
 import { sortBooks } from '../../../utils/books.js';
 import { getBookProgress } from '../../../utils/stats.js';
-import { formatNumber } from '../../../utils/format.js';
+import { describeBookPosition, hasStarted } from '../../../utils/formats.js';
+import { FormatBadge } from '../../../components/ui/FormatBadge.jsx';
 
 /** Escolha do livro e botão "Iniciar leitura". */
 export function StartSession({ requestedBookId }) {
@@ -84,13 +85,13 @@ export function StartSession({ requestedBookId }) {
                 <BookCover book={book} size="sm" />
                 <span className="book-option__text">
                   <span className="book-option__title">{book.title}</span>
-                  <span className="book-option__author">{book.author}</span>
+                  <span className="book-option__author">
+                    {book.author} <FormatBadge format={book.format} />
+                  </span>
                   <span className="book-option__progress">
                     <ProgressBar value={getBookProgress(book)} size="sm" label={`Progresso de ${book.title}`} />
                     <span className="tabular">
-                      {book.currentPage > 0
-                        ? `pág. ${formatNumber(book.currentPage)}${book.totalPages ? ` de ${formatNumber(book.totalPages)}` : ''}`
-                        : 'ainda não começou'}
+                      {hasStarted(book) ? describeBookPosition(book) : 'ainda não começou'}
                     </span>
                   </span>
                 </span>
@@ -103,9 +104,7 @@ export function StartSession({ requestedBookId }) {
       <div className="start-session__footer">
         {selected && (
           <p className="start-session__hint">
-            {selected.currentPage > 0
-              ? `Você continua da página ${formatNumber(selected.currentPage)}.`
-              : 'Você começa do início.'}{' '}
+            {hasStarted(selected) ? `Você continua de ${describeBookPosition(selected)}.` : 'Você começa do início.'}{' '}
             O tempo só conta enquanto o cronômetro estiver rodando.
           </p>
         )}

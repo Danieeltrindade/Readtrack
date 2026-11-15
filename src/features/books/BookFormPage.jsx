@@ -12,10 +12,14 @@ import { BOOK_STATUS_LABELS, LIMITS, validateBookForm } from '../../utils/valida
 import { CoverField } from './components/CoverField.jsx';
 import { FinalReviewFields } from './components/FinalReviewFields.jsx';
 import { PastBookForm } from './components/PastBookForm.jsx';
+import { FormatPicker } from './components/FormatPicker.jsx';
+import { AUDIO_SPEEDS, PROGRESS_KINDS, formatSpeed, getProgressKind } from '../../utils/formats.js';
 import './BookForm.css';
 
 const STATUS_OPTIONS = Object.entries(BOOK_STATUS_LABELS).map(([value, label]) => ({ value, label }));
-const FIELD_ORDER = ['title', 'author', 'status', 'totalPages', 'contentStartPage', 'currentPage', 'startedAt', 'finishedAt', 'rating', 'review', 'learnings', 'coverUrl', 'description'];
+const FIELD_ORDER = ['format', 'title', 'author', 'status', 'totalPages', 'contentStartPage', 'currentPage', 'progressPercent', 'audioHours', 'audioPosition', 'narrator', 'audioSpeed', 'startedAt', 'finishedAt', 'rating', 'review', 'learnings', 'coverUrl', 'description'];
+
+const SAVE_LABELS = { print: 'Adicionar livro físico', digital: 'Adicionar e-book', audio: 'Adicionar audiobook' };
 
 /** Texto de apoio do campo "Página inicial da leitura", com as páginas de leitura. */
 function contentStartHint(values, isEdit) {
@@ -64,7 +68,7 @@ function BookForm({ book }) {
   const isEdit = Boolean(book);
   const navigate = useNavigate();
   const toast = useToast();
-  const { actions } = useData();
+  const { actions, sessions } = useData();
   const formRef = useRef(null);
   const alertRef = useRef(null);
 
@@ -159,12 +163,25 @@ function BookForm({ book }) {
   };
   const errorCount = Object.keys(validation.errors).length;
   const isFinished = values.status === 'finished';
+  const kind = getProgressKind(values);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
+  // Com sessões registradas, o tipo de progresso não muda (páginas ↔ % ↔ áudio):
+  // as sessões antigas continuariam medidas do outro jeito.
+  const lockedKind = isEdit && sessions.some((s) => s.bookId === book.id) ? getProgressKind(book) : null;
+  const formatDisabled = (format) =>
+    lockedKind !== null && !(format === 'digital' ? lockedKind !== PROGRESS_KINDS.AUDIO : getProgressKind({ format }) === lockedKind);
+  const pickFormat = (format) =>
+    setValues((current) => ({
+      ...current,
+      format,
+      progressMode: format === 'digital' ? (lockedKind === PROGRESS_KINDS.PERCENT ? 'percent' : lockedKind === PROGRESS_KINDS.PAGES ? 'pages' : current.progressMode) : 'pages',
+    }));
 
   return (
     <div className="page book-form-page">
       <PageHeader
         title={isEdit ? 'Editar livro' : 'Adicionar livro'}
-        description={isEdit ? book.title : 'Só título, autor e número de páginas são obrigatórios.'}
+        description={isEdit ? book.title : 'Escolha o formato; depois, só título, autor e o tamanho do livro são obrigatórios.'}
       />
 
       <form ref={formRef} className="book-form" onSubmit={onSubmit} noValidate>
@@ -178,6 +195,13 @@ function BookForm({ book }) {
               {submitError ??
                 (errorCount === 1 ? 'Há 1 campo para corrigir.' : `Há ${errorCount} campos para corrigir.`)}
             </div>
+          )}
+
+          <FormatPicker value={values.format} onChange={pickFormat} isDisabled={formatDisabled} error={errorFor('format')} />
+          {lockedKind && (
+            <p className="book-form__note">
+              Este livro já tem sessões: dá para trocar entre físico e e-book/PDF por páginas, mas não o jeito de medir o progresso.
+            </p>
           )}
 
           <fieldset className="book-form__group">
@@ -212,44 +236,111 @@ function BookForm({ book }) {
               onChange={(value) => setField('status', value)}
               error={errorFor('status')}
             />
+            {values.format === 'digital' && (
+              <ChoiceGroup
+                legend="Como medir o progresso?"
+                name="progressMode"
+                options={[
+                  { value: 'pages', label: 'Por páginas' },
+                  { value: 'percent', label: 'Por %' },
+                ]}
+                value={values.progressMode}
+                onChange={(value) => {
+                  if (!lockedKind) setField('progressMode', value);
+                }}
+              />
+            )}
+            {byPages && (
+              <>
             <div className="book-form__row">
-              <Field
-                label="Total de páginas"
-                required={!formOptions.allowMissingTotal}
-                error={errorFor('totalPages')}
-                hint={formOptions.allowMissingTotal ? 'Não informado nas anotações. Deixe em branco se não souber.' : undefined}
-              >
-                <input className="input input--number" inputMode="numeric" pattern="[0-9]*" {...bind('totalPages')} />
-              </Field>
-              <Field
-                label="Página atual"
-                error={errorFor('currentPage')}
-                hint={isFinished ? 'Livro concluído: igual ao total.' : 'Última página que você terminou.'}
-              >
-                <input
-                  className="input input--number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  disabled={isFinished}
-                  {...bind('currentPage')}
-                />
-              </Field>
-            </div>
-            <div className="book-form__row">
-              <Field
-                label="Página inicial da leitura"
-                error={errorFor('contentStartPage')}
-                hint={contentStartHint(values, isEdit)}
-              >
-                <input
-                  className="input input--number"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  placeholder="1"
-                  {...bind('contentStartPage')}
-                />
-              </Field>
-            </div>
+                <Field
+                  label="Total de páginas"
+                  required={!formOptions.allowMissingTotal}
+                  error={errorFor('totalPages')}
+                  hint={formOptions.allowMissingTotal ? 'Não informado nas anotações. Deixe em branco se não souber.' : undefined}
+                >
+                  <input className="input input--number" inputMode="numeric" pattern="[0-9]*" {...bind('totalPages')} />
+                </Field>
+                <Field
+                  label="Página atual"
+                  error={errorFor('currentPage')}
+                  hint={isFinished ? 'Livro concluído: igual ao total.' : 'Última página que você terminou.'}
+                >
+                  <input
+                    className="input input--number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    disabled={isFinished}
+                    {...bind('currentPage')}
+                  />
+                </Field>
+              </div>
+              <div className="book-form__row">
+                <Field
+                  label="Página inicial da leitura"
+                  error={errorFor('contentStartPage')}
+                  hint={contentStartHint(values, isEdit)}
+                >
+                  <input
+                    className="input input--number"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="1"
+                    {...bind('contentStartPage')}
+                  />
+                </Field>
+              </div>
+                {values.format === 'digital' && (
+                  <p className="book-form__note">Ideal para PDF: a numeração é fixa e conta nas metas de páginas.</p>
+                )}
+              </>
+            )}
+            {kind === PROGRESS_KINDS.PERCENT && (
+              <>
+                <div className="book-form__row">
+                  <Field label="Progresso atual (%)" error={errorFor('progressPercent')} hint={isFinished ? 'Livro concluído: 100%.' : 'Como aparece no leitor (0 a 100).'}>
+                    <input className="input input--number" inputMode="numeric" pattern="[0-9]*" disabled={isFinished} {...bind('progressPercent')} />
+                  </Field>
+                  <Field label="Páginas da edição impressa" error={errorFor('totalPages')} hint="Só para referência.">
+                    <input className="input input--number" inputMode="numeric" pattern="[0-9]*" {...bind('totalPages')} />
+                  </Field>
+                </div>
+                <p className="book-form__note">Para Kindle e e-readers. Conta no tempo, nas sessões e nos livros concluídos, não nas metas de páginas.</p>
+              </>
+            )}
+            {kind === PROGRESS_KINDS.AUDIO && (
+              <>
+                <div className="book-form__row">
+                  <Field label="Duração total" required error={errorFor('audioDuration')} hint="Como aparece no app de áudio.">
+                    <div className="book-form__audio-length" role="group" aria-label="Duração total">
+                      <input name="audioHours" className="input input--number" inputMode="numeric" pattern="[0-9]*" aria-label="Horas" {...bind('audioHours')} />
+                      <span>h</span>
+                      <input name="audioMinutes" className="input input--number" inputMode="numeric" pattern="[0-9]*" aria-label="Minutos" {...bind('audioMinutes')} />
+                      <span>min</span>
+                    </div>
+                  </Field>
+                  <Field label="Posição atual" error={errorFor('audioPosition')} hint={isFinished ? 'Concluído: fim do áudio.' : 'h:mm:ss (ex.: 2:15:00). Vazio = início.'}>
+                    <input className="input input--number" placeholder="0:00:00" disabled={isFinished} {...bind('audioPosition')} />
+                  </Field>
+                </div>
+                <div className="book-form__row">
+                  <Field label="Narrador" error={errorFor('narrator')}>
+                    <input className="input" maxLength={LIMITS.author + 20} autoComplete="off" {...bind('narrator')} />
+                  </Field>
+                  <Field label="Velocidade habitual" error={errorFor('audioSpeed')}>
+                    <select className="select" {...bind('audioSpeed')}>
+                      <option value="">Não informar</option>
+                      {AUDIO_SPEEDS.map((speed) => (
+                        <option key={speed} value={String(speed)}>
+                          {formatSpeed(speed)}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </div>
+                <p className="book-form__note">Audiobooks contam em tempo, sessões, sequência e livros concluídos. Não entram nas metas de páginas.</p>
+              </>
+            )}
             {values.status !== 'want-to-read' && (
               <div className="book-form__row">
                 <Field label="Data de início" error={errorFor('startedAt')}>
@@ -297,7 +388,7 @@ function BookForm({ book }) {
               Cancelar
             </Button>
             <Button type="submit" icon={Save}>
-              {isEdit ? 'Salvar alterações' : 'Adicionar livro'}
+              {isEdit ? 'Salvar alterações' : SAVE_LABELS[values.format] ?? 'Adicionar livro'}
             </Button>
           </div>
         </div>

@@ -1,8 +1,16 @@
+import { formatAudioPosition, getSessionKind } from '../../../utils/formats.js';
 import { Link } from 'react-router';
 import { Timer } from 'lucide-react';
 import { BookCover, Button, EmptyState, Panel } from '../../../components/ui';
 import { usePaths } from '../../../hooks/useWorkspace.js';
 import { formatDuration, formatNumber, formatRelativeDay, formatTime } from '../../../utils/format.js';
+
+function sessionGainLabel(session) {
+  const kind = getSessionKind(session);
+  if (kind === 'audio') return `${formatAudioPosition(Math.max(0, (session.endPositionSeconds ?? 0) - (session.startPositionSeconds ?? 0)))} de áudio`;
+  if (kind === 'percent') return `+${Math.max(0, (session.endPercent ?? 0) - (session.startPercent ?? 0))}%`;
+  return `+${formatNumber(session.pagesRead)} pág`;
+}
 
 /** Últimas sessões de leitura, com livro, quando, páginas e duração. */
 export function RecentSessions({ sessions, booksById }) {
@@ -33,7 +41,7 @@ export function RecentSessions({ sessions, booksById }) {
                     </p>
                   </div>
                   <div className="recent__numbers tabular">
-                    <p className="recent__pages">+{formatNumber(session.pagesRead)} pág</p>
+                    <p className="recent__pages">{sessionGainLabel(session)}</p>
                     <p className="recent__time">{formatDuration(session.durationSeconds)}</p>
                   </div>
                 </Link>

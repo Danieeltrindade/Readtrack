@@ -11,6 +11,7 @@
  */
 import { toDate, toInputDate } from './date.js';
 import { getBookProgress } from './stats.js';
+import { formatAudioPosition, getBookPosition, splitHoursMinutes, withFinishedPosition } from './formats.js';
 
 /** Cores das capas geradas: tons de encadernação que contrastam com o texto claro. */
 export const COVER_COLORS = ['#6B3A3A', '#3F5A4A', '#2F4468', '#5A4366', '#6A5130', '#36575C', '#4E4A6E', '#6B4A3A'];
@@ -30,14 +31,14 @@ export function applyStatusChange(book, status, now = new Date()) {
     case 'reading':
       return { ...base, startedAt: book.startedAt ?? iso(now), finishedAt: null };
     case 'finished':
-      return {
+      return withFinishedPosition({
         ...base,
         startedAt: book.startedAt ?? iso(now),
         finishedAt: iso(now),
         currentPage: book.totalPages ?? book.currentPage,
-      };
+      });
     case 'want-to-read':
-      return { ...base, finishedAt: null, startedAt: book.currentPage > 0 ? book.startedAt : null };
+      return { ...base, finishedAt: null, startedAt: getBookPosition(book) > 0 ? book.startedAt : null };
     default:
       return book;
   }
@@ -47,11 +48,24 @@ export function applyStatusChange(book, status, now = new Date()) {
 function normalizeByStatus(data, now) {
   if (data.status === 'want-to-read') return { ...data, startedAt: null, finishedAt: null };
   if (data.status === 'reading') return { ...data, startedAt: data.startedAt ?? iso(now), finishedAt: null };
-  return {
+  return withFinishedPosition({
     ...data,
     currentPage: data.totalPages ?? data.currentPage,
     startedAt: data.startedAt ?? data.finishedAt ?? iso(now),
     finishedAt: data.finishedAt ?? iso(now),
+  });
+}
+
+/** Campos do formato (validateBookForm().data) que vão para o livro. */
+function formatFields(data) {
+  return {
+    format: data.format ?? 'print',
+    progressMode: data.progressMode ?? 'pages',
+    progressPercent: data.progressPercent ?? 0,
+    audioDurationSeconds: data.audioDurationSeconds ?? null,
+    audioPositionSeconds: data.audioPositionSeconds ?? 0,
+    narrator: data.narrator ?? '',
+    audioSpeed: data.audioSpeed ?? null,
   };
 }
 
@@ -74,6 +88,7 @@ export function createBook(data, { id, now = new Date() }) {
     review: normalized.review ?? '',
     learnings: normalized.learnings ?? '',
     contentStartPage: normalized.contentStartPage ?? null,
+    ...formatFields(normalized),
     createdAt: iso(now),
     updatedAt: iso(now),
     isDemo: false,
@@ -98,6 +113,7 @@ export function updateBook(book, data, now = new Date()) {
     review: normalized.review ?? '',
     learnings: normalized.learnings ?? '',
     contentStartPage: normalized.contentStartPage ?? null,
+    ...formatFields(normalized),
     updatedAt: iso(now),
   };
 }
@@ -116,6 +132,14 @@ export const EMPTY_BOOK_FORM = Object.freeze({
   review: '',
   learnings: '',
   contentStartPage: '',
+  format: 'print',
+  progressMode: 'pages',
+  progressPercent: '0',
+  audioHours: '',
+  audioMinutes: '',
+  audioPosition: '',
+  narrator: '',
+  audioSpeed: '1',
 });
 
 /** Livro → valores de formulário (strings). */
@@ -135,6 +159,14 @@ export function bookToFormValues(book) {
     review: book.review ?? '',
     learnings: book.learnings ?? '',
     contentStartPage: book.contentStartPage ? String(book.contentStartPage) : '',
+    format: book.format ?? 'print',
+    progressMode: book.progressMode ?? 'pages',
+    progressPercent: String(book.progressPercent ?? 0),
+    audioHours: splitHoursMinutes(book.audioDurationSeconds).hours,
+    audioMinutes: splitHoursMinutes(book.audioDurationSeconds).minutes,
+    audioPosition: book.audioPositionSeconds ? formatAudioPosition(book.audioPositionSeconds) : '',
+    narrator: book.narrator ?? '',
+    audioSpeed: book.audioSpeed ? String(book.audioSpeed) : '1',
   };
 }
 
@@ -184,8 +216,9 @@ export function sortBooks(books, sortKey = 'recentes') {
 }
 
 /** Pesquisa → filtro de status → ordenação. Também devolve a contagem por status. */
-export function queryLibrary(books, { query = '', status = 'all', sort = 'recentes' } = {}) {
-  const searched = searchBooks(books, query);
+export function queryLibrary(books, { query = '', status = 'all', sort = 'recentes', format = 'all' } = {}) {
+  const byFormat = format === 'all' ? books : books.filter((b) => (b.format ?? 'print') === format);
+  const searched = searchBooks(byFormat, query);
   const counts = { all: searched.length, reading: 0, finished: 0, 'want-to-read': 0 };
   for (const book of searched) if (counts[book.status] !== undefined) counts[book.status] += 1;
   const filtered = status === 'all' ? searched : searched.filter((b) => b.status === status);
@@ -210,6 +243,7 @@ export const EMPTY_PAST_BOOK_FORM = Object.freeze({
   rating: '',
   review: '',
   learnings: '',
+  format: 'print',
 });
 
 export function pastBookToFormValues(book) {
@@ -222,6 +256,7 @@ export function pastBookToFormValues(book) {
     rating: book.rating ? String(book.rating) : '',
     review: book.review ?? '',
     learnings: book.learnings ?? '',
+    format: book.format ?? 'print',
   };
 }
 
@@ -245,6 +280,7 @@ export function createPastBook(data, { id, now = new Date() }) {
     rating: data.rating,
     review: data.review,
     learnings: data.learnings,
+    format: data.format ?? 'print',
     addedAsRead: true,
     createdAt: iso(now),
     updatedAt: iso(now),
@@ -265,6 +301,7 @@ export function updatePastBook(book, data, now = new Date()) {
     rating: data.rating,
     review: data.review,
     learnings: data.learnings,
+    format: data.format ?? book.format ?? 'print',
     addedAsRead: true,
     updatedAt: iso(now),
   };

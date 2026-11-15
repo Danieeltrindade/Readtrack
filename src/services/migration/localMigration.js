@@ -11,7 +11,7 @@
  * - Dados de demonstração não são enviados (podem ser restaurados depois).
  */
 import { DEFAULT_GOALS } from '../../utils/goals.js';
-import { DEFAULT_SETTINGS } from '../../utils/settings.js';
+import { DEFAULT_SETTINGS, isDefaultSettings } from '../../utils/settings.js';
 
 const isReal = (item) => !item.isDemo;
 
@@ -36,7 +36,7 @@ function differsFromDefaults(settings, goals) {
   const s = settings ?? {};
   const g = goals ?? {};
   return (
-    Object.keys(DEFAULT_SETTINGS).some((key) => (s[key] ?? DEFAULT_SETTINGS[key]) !== DEFAULT_SETTINGS[key]) ||
+    !isDefaultSettings(s) ||
     Object.keys(DEFAULT_GOALS).some((key) => (key in g ? g[key] : DEFAULT_GOALS[key]) !== DEFAULT_GOALS[key])
   );
 }

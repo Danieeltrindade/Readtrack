@@ -98,6 +98,18 @@
   --chart-grid: rgba(237, 230, 214, 0.07);
   --chart-axis: var(--paper-700);
 
+  /* Formatos de leitura (as Configurações podem trocar estas cores) */
+  --format-print: #ffb054;
+  --format-digital: #5cc8ff;
+  --format-audio: #ff6fa8;
+
+  /* Tipos de anotação do caderno */
+  --note-summary: #d5d7e0;
+  --note-quote: #b9b0ff;
+  --note-word: #5cc8ff;
+  --note-idea: #ffb054;
+  --note-question: #7ef0c1;
+
   /* Layout */
   --sidebar-width: 248px;
   --sidebar-rail-width: 76px;

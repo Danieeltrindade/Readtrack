@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { ArrowLeft, BookX, Languages, MessageSquareQuote, NotebookPen, Pencil, PenLine, Timer } from 'lucide-react';
-import { BookCover, Button, EmptyState, Panel, ProgressBar, StatusBadge } from '../../components/ui';
+import { BookCover, Button, EmptyState, FormatBadge, Panel, ProgressBar, StatusBadge } from '../../components/ui';
 import { usePaths } from '../../hooks/useWorkspace.js';
 import { useData } from '../../hooks/useData.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -23,6 +23,18 @@ import { BookActionsMenu } from './components/BookActionsMenu.jsx';
 import { FinalReviewDialog } from './components/FinalReviewDialog.jsx';
 import { SessionDialog } from '../history/components/SessionDialog.jsx';
 import { hasFinalReview } from '../../utils/books.js';
+import {
+  PROGRESS_KINDS,
+  describeBookPosition,
+  describeRemaining,
+  describeSessionProgress,
+  formatAudioLength,
+  formatSpeed,
+  getProgressKind,
+  getSessionKind,
+  hasMeasurableProgress,
+} from '../../utils/formats.js';
+import { NOTEBOOK_LABELS, NOTEBOOK_SINGULAR, collectNotebook, countByType, formatEntryAnchor } from '../../utils/annotations.js';
 import './BookDetail.css';
 
 const RECENT_LIMIT = 8;
@@ -80,6 +92,12 @@ export default function BookDetailPage() {
   const pace = calculatePace(bookSessions);
   const estimateSeconds = book.status !== 'finished' && pace.reliable ? (remaining / pace.pagesPerMinute) * 60 : 0;
 
+  const kind = getProgressKind(book);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
+  const audio = kind === PROGRESS_KINDS.AUDIO;
+  const notebook = collectNotebook({ books: [book], sessions: bookSessions });
+  const notebookCounts = countByType(notebook);
+
   const timerHere = activeSession?.bookId === book.id;
   const timerElsewhere = activeSession && !timerHere ? books.find((b) => b.id === activeSession.bookId) : null;
 
@@ -100,7 +118,37 @@ export default function BookDetailPage() {
     { label: 'Velocidade média', value: '—', detail: 'sem sessões cronometradas' },
   ];
 
-  const facts = pastRead ? pastFacts : [
+  // E-book por % e audiobook: progresso e tempo (sem páginas — nada é deduzido).
+  const kindFacts = [
+    {
+      label: audio ? 'Posição no áudio' : 'Progresso',
+      value: book.status === 'finished' ? '100%' : `${progress}%`,
+      detail: describeBookPosition(book),
+    },
+    {
+      label: 'Restante',
+      value: audio ? (book.audioDurationSeconds ? formatAudioLength(Math.max(0, book.audioDurationSeconds - (book.audioPositionSeconds || 0))) || '—' : '—') : `${100 - progress}%`,
+      detail: audio && !book.audioDurationSeconds ? 'informe a duração para calcular' : describeRemaining(book) || 'fim alcançado',
+    },
+    {
+      label: audio ? 'Tempo ouvindo' : 'Tempo de leitura',
+      value: formatDuration(totalSeconds),
+      detail: `${pluralize(bookSessions.length, 'sessão', 'sessões')}${withoutDuration ? ` · ${withoutDuration} sem duração` : ''}`,
+    },
+    audio
+      ? {
+          label: 'Duração do áudio',
+          value: book.audioDurationSeconds ? formatAudioLength(book.audioDurationSeconds) : '—',
+          detail: book.audioSpeed ? `velocidade habitual ${formatSpeed(book.audioSpeed)}` : 'velocidade não informada',
+        }
+      : {
+          label: 'Páginas',
+          value: '—',
+          detail: 'progresso por porcentagem: não conta nas metas de páginas',
+        },
+  ];
+
+  const facts = pastRead ? pastFacts : !byPages ? kindFacts : [
     {
       label: 'Páginas lidas',
       value: formatNumber(contentDone),
@@ -150,13 +198,29 @@ export default function BookDetailPage() {
         <div className="book-detail__info">
           <div className="book-detail__badges">
             <StatusBadge status={book.status} />
+            <FormatBadge format={book.format} long />
             {pastRead && <span className="book-detail__origin">Lido antes do ReadTrack</span>}
           </div>
           <h1 id="book-title">{book.title}</h1>
           {book.author && <p className="book-detail__author">{book.author}</p>}
+          {audio && book.narrator && <p className="book-detail__narrator">Narração: {book.narrator}</p>}
           {book.description && <p className="book-detail__description">{book.description}</p>}
 
-          {!pastRead && (
+          {!pastRead && !byPages && (
+            <div className="book-detail__progress">
+              <div className="book-detail__progress-text tabular">
+                <span>
+                  <strong>{describeBookPosition(book)}</strong>
+                </span>
+                {(hasMeasurableProgress(book) || book.status === 'finished') && <span className="book-detail__percent">{progress}%</span>}
+              </div>
+              {(hasMeasurableProgress(book) || book.status === 'finished') && (
+                <ProgressBar value={progress} tone={book.status === 'finished' ? 'success' : 'accent'} label="Progresso do livro" />
+              )}
+            </div>
+          )}
+
+          {!pastRead && byPages && (
           <div className="book-detail__progress">
             <div className="book-detail__progress-text tabular">
               <span>
@@ -275,6 +339,37 @@ export default function BookDetailPage() {
         )
       )}
 
+      {notebook.length > 0 && (
+        <Panel
+          title="Caderno do livro"
+          action={
+            <Link to={`${ROUTES.notebook}?livro=${book.id}`} className="book-detail__history-link">
+              Abrir no Caderno ({notebook.length})
+            </Link>
+          }
+        >
+          <p className="book-detail__notebook-counts">
+            {['summary', 'quote', 'word', 'idea', 'question']
+              .filter((t) => notebookCounts[t] > 0)
+              .map((t) => `${notebookCounts[t]} ${NOTEBOOK_LABELS[t].toLowerCase()}`)
+              .join(' · ')}
+            {notebookCounts.open > 0 && ` · ${notebookCounts.open} ${notebookCounts.open === 1 ? 'dúvida em aberto' : 'dúvidas em aberto'}`}
+          </p>
+          <ul className="book-detail__notebook">
+            {notebook.filter((e) => e.type !== 'summary').slice(0, 4).map((e) => (
+              <li key={e.key} className={`book-detail__note book-detail__note--${e.type}`}>
+                <span className="book-detail__note-kind">
+                  {NOTEBOOK_SINGULAR[e.type]}
+                  {formatEntryAnchor(e) && ` · ${formatEntryAnchor(e)}`}
+                </span>
+                <span className="book-detail__note-text">{e.type === 'quote' ? `“${e.text}”` : e.text}</span>
+                {e.note && <span className="book-detail__note-extra">{e.note}</span>}
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
       <Panel
         title="Sessões recentes"
         action={
@@ -307,15 +402,24 @@ export default function BookDetailPage() {
                   <small className="tabular">{formatSessionPeriod(session)}</small>
                 </div>
                 <div className="session-list__main">
-                  <p className="tabular">
-                    Páginas {session.startPage}–{session.endPage}
-                    <span className="session-list__pages"> +{session.pagesRead}</span>
-                  </p>
+                  {getSessionKind(session) === PROGRESS_KINDS.PAGES ? (
+                    <p className="tabular">
+                      Páginas {session.startPage}–{session.endPage}
+                      <span className="session-list__pages"> +{session.pagesRead}</span>
+                    </p>
+                  ) : (
+                    <p className="tabular">{describeSessionProgress(session)}</p>
+                  )}
                   <p className="session-list__meta session-list__badges">
                     <SourceBadge session={session} compact />
                     {session.vocabulary?.length > 0 && (
                       <span className="session-list__vocab">
                         <Languages size={13} aria-hidden="true" /> {pluralize(session.vocabulary.length, 'palavra')}
+                      </span>
+                    )}
+                    {session.annotations?.length > 0 && (
+                      <span className="session-list__vocab">
+                        <NotebookPen size={13} aria-hidden="true" /> {pluralize(session.annotations.length, 'anotação', 'anotações')}
                       </span>
                     )}
                   </p>

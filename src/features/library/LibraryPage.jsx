@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { BookCheck, Library, Plus, Search, SearchX, X } from 'lucide-react';
-import { BookCover, Button, EmptyState, PageHeader, ProgressBar, StatusBadge } from '../../components/ui';
+import { BookCover, Button, EmptyState, FormatBadge, PageHeader, ProgressBar, StatusBadge } from '../../components/ui';
+import { FORMAT_LABELS, FORMAT_LIST, describeBookPosition, hasMeasurableProgress } from '../../utils/formats.js';
 import { usePaths } from '../../hooks/useWorkspace.js';
 import { useData } from '../../hooks/useData.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
@@ -25,6 +26,9 @@ const EMPTY_MESSAGES = {
   'want-to-read': 'Sua lista de próximos livros está vazia.',
 };
 
+const FORMAT_FILTERS = [{ value: 'all', label: 'Todos os formatos' }, ...FORMAT_LIST.map((value) => ({ value, label: FORMAT_LABELS[value] }))];
+const VALID_FORMAT = new Set(FORMAT_FILTERS.map((f) => f.value));
+
 const VALID_STATUS = new Set(FILTERS.map((f) => f.value));
 const VALID_SORT = new Set(SORT_OPTIONS.map((o) => o.value));
 
@@ -42,6 +46,7 @@ export default function LibraryPage() {
   const status = VALID_STATUS.has(params.get('status')) ? params.get('status') : 'all';
   const sort = VALID_SORT.has(params.get('ordem')) ? params.get('ordem') : 'recentes';
   const query = params.get('q') ?? '';
+  const format = VALID_FORMAT.has(params.get('formato')) ? params.get('formato') : 'all';
 
   const updateParam = (key, value, defaultValue) => {
     setParams(
@@ -55,8 +60,8 @@ export default function LibraryPage() {
     );
   };
 
-  const result = useMemo(() => queryLibrary(books, { query, status, sort }), [books, query, status, sort]);
-  const hasFilters = Boolean(query) || status !== 'all';
+  const result = useMemo(() => queryLibrary(books, { query, status, sort, format }), [books, query, status, sort, format]);
+  const hasFilters = Boolean(query) || status !== 'all' || format !== 'all';
 
   return (
     <div className="page library">
@@ -112,6 +117,18 @@ export default function LibraryPage() {
                   <span className="visually-hidden">Limpar pesquisa</span>
                 </button>
               )}
+            </div>
+            <div className="library__sort">
+              <label htmlFor="library-format" className="library__sort-label">
+                Formato
+              </label>
+              <select id="library-format" className="select" value={format} onChange={(event) => updateParam('formato', event.target.value, 'all')}>
+                {FORMAT_FILTERS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="library__sort">
               <label htmlFor="library-sort" className="library__sort-label">
@@ -200,18 +217,21 @@ function BookCard({ book }) {
       <Link to={ROUTES.book(book.id)} className="book-card__link">
         <BookCover book={book} size="fluid" />
         <div className="book-card__info">
-          <StatusBadge status={book.status} />
+          <div className="book-card__badges">
+            <StatusBadge status={book.status} />
+            <FormatBadge format={book.format} />
+          </div>
           <h2 className="book-card__title">{book.title}</h2>
           <p className="book-card__author">{book.author}</p>
           {book.addedAsRead && <p className="book-card__origin">Lido antes do ReadTrack</p>}
-          {book.status === 'reading' && book.totalPages && (
+          {book.status === 'reading' && hasMeasurableProgress(book) && (
             <div className="book-card__progress">
               <ProgressBar value={progress} size="sm" label={`Progresso de ${book.title}`} />
               <span className="tabular">{progress}%</span>
             </div>
           )}
-          {book.status === 'reading' && !book.totalPages && (
-            <p className="book-card__origin tabular">Página {book.currentPage} · total não informado</p>
+          {book.status === 'reading' && !hasMeasurableProgress(book) && (
+            <p className="book-card__origin tabular">{describeBookPosition(book)} · {book.format === 'audio' ? 'duração não informada' : 'total não informado'}</p>
           )}
         </div>
       </Link>

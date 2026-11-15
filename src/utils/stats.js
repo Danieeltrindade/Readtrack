@@ -32,6 +32,7 @@ import {
 import { buildLedger, getReadingDayKeys, isReadingDay, summarizeHours, summarizeRange } from './ledger.js';
 import { getContentPagesDone, getReadablePages } from './pages.js';
 import { hasKnownDuration } from './duration.js';
+import { getNonPageProgress } from './formats.js';
 
 export const PACE_MIN_SECONDS = 600;
 export const PACE_MIN_PAGES = 5;
@@ -70,6 +71,9 @@ export function calculatePace(sessions) {
 export function getBookProgress(book) {
   if (!book) return 0;
   if (book.status === 'finished') return 100;
+  // E-book por porcentagem e audiobook: progresso pela % ou pela posição no áudio.
+  const other = getNonPageProgress(book);
+  if (other !== null) return other;
   if (!book.totalPages) return 0;
   // Conta do início do conteúdo (página inicial da leitura) até o total.
   const value = (getContentPagesDone(book) / getReadablePages(book)) * 100;

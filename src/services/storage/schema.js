@@ -12,13 +12,29 @@
  * - v2: sessões trocam `endedAt` por `finishedAt` e ganham intervalos de
  *       leitura (segments), tempo pausado e páginas novas; livros ganham
  *       `description`; surge `activeSession` (cronômetro em andamento).
+ *
+ * Campos acrescentados depois, sempre com valor padrão (dados antigos
+ * continuam válidos sem mudar a versão):
+ * - 1.7.0: formato do livro (físico, e-book/PDF, audiobook) e progresso por
+ *   porcentagem ou posição no áudio; anotações da sessão (citações, ideias,
+ *   dúvidas), âncora nas palavras do vocabulário e "como foi" a sessão.
  */
-import { BOOK_STATUSES } from '../../utils/validation.js';
+import { BOOK_STATUSES, SESSION_MOODS } from '../../utils/validation.js';
 import { toDate } from '../../utils/date.js';
 import { isValidActiveSession } from '../../utils/timer.js';
 import { DEFAULT_GOALS, normalizeGoals } from '../../utils/goals.js';
 import { DEFAULT_SETTINGS, normalizeSettings } from '../../utils/settings.js';
 import { SESSION_SOURCES, countSessionPages } from '../../utils/pages.js';
+import {
+  MAX_AUDIO_SECONDS,
+  PROGRESS_KINDS,
+  clampPercent,
+  getProgressKind,
+  getSessionKind,
+  normalizeFormat,
+  normalizeSpeed,
+} from '../../utils/formats.js';
+import { normalizeAnchor, normalizeAnnotations } from '../../utils/annotations.js';
 
 export { DEFAULT_GOALS, DEFAULT_SETTINGS };
 
@@ -127,6 +143,36 @@ function normalizeBook(book) {
     learnings: isString(book.learnings) ? book.learnings : '',
     createdAt: toIsoOrNull(book.createdAt) ?? toIsoOrNull(book.startedAt) ?? new Date().toISOString(),
     isDemo: Boolean(book.isDemo),
+    ...normalizeBookFormat(book, status),
+  };
+}
+
+const intOrNull = (v, min, max) => {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : null;
+};
+
+/** Formato e progresso por porcentagem/áudio (1.7.0). Padrão: livro físico por páginas. */
+function normalizeBookFormat(book, status) {
+  const format = normalizeFormat(book.format);
+  const progressMode = format === 'digital' && book.progressMode === 'percent' ? 'percent' : 'pages';
+  const kind = getProgressKind({ format, progressMode });
+  const audio = kind === PROGRESS_KINDS.AUDIO;
+  const audioDurationSeconds = audio ? intOrNull(book.audioDurationSeconds, 1, MAX_AUDIO_SECONDS) : null;
+  let audioPositionSeconds = audio ? Math.max(0, toInt(book.audioPositionSeconds)) : 0;
+  if (audioDurationSeconds) audioPositionSeconds = Math.min(audioDurationSeconds, audioPositionSeconds);
+  if (audio && status === 'finished' && audioDurationSeconds) audioPositionSeconds = audioDurationSeconds;
+  let progressPercent = kind === PROGRESS_KINDS.PERCENT ? clampPercent(book.progressPercent) : 0;
+  if (kind === PROGRESS_KINDS.PERCENT && status === 'finished') progressPercent = 100;
+  return {
+    format,
+    progressMode,
+    progressPercent,
+    audioDurationSeconds,
+    audioPositionSeconds,
+    narrator: audio && isString(book.narrator) ? book.narrator.trim().slice(0, 120) : '',
+    audioSpeed: audio ? normalizeSpeed(book.audioSpeed) : null,
   };
 }
 
@@ -135,17 +181,26 @@ export function normalizeVocabulary(items) {
   if (!Array.isArray(items)) return [];
   return items
     .filter((item) => item && isString(item.term) && item.term.trim())
-    .map((item) => ({ term: item.term.trim(), meaning: isString(item.meaning) ? item.meaning.trim() : '' }));
+    .map((item) => {
+      const out = { term: item.term.trim(), meaning: isString(item.meaning) ? item.meaning.trim() : '' };
+      const anchor = normalizeAnchor(item.anchor);
+      if (anchor) out.anchor = anchor;
+      return out;
+    });
 }
+
 
 function normalizeSession(session, bookIds) {
   if (!session || !isString(session.id) || !bookIds.has(session.bookId)) return null;
   if (!toDate(session.startedAt)) return null;
   const source = session.source === SESSION_SOURCES.MANUAL ? SESSION_SOURCES.MANUAL : SESSION_SOURCES.TIMER;
   const manual = source === SESSION_SOURCES.MANUAL;
-  const startPage = Math.max(manual ? 1 : 0, toInt(session.startPage));
-  const endPage = Math.max(startPage, toInt(session.endPage, startPage));
-  const pagesRead = countSessionPages(source, startPage, endPage);
+  const progressKind = getSessionKind(session);
+  const byPages = progressKind === PROGRESS_KINDS.PAGES;
+  // Sessões por porcentagem ou áudio não têm páginas (nada é deduzido).
+  const startPage = byPages ? Math.max(manual ? 1 : 0, toInt(session.startPage)) : 0;
+  const endPage = byPages ? Math.max(startPage, toInt(session.endPage, startPage)) : 0;
+  const pagesRead = byPages ? countSessionPages(source, startPage, endPage) : 0;
   // Registro manual: término e duração podem ser desconhecidos (null) —
   // nada é inventado. No cronômetro eles sempre existem.
   const finishedAt = toIsoOrNull(session.finishedAt) ?? (manual ? null : session.startedAt);
@@ -166,8 +221,24 @@ function normalizeSession(session, bookIds) {
     segments: Array.isArray(session.segments) ? session.segments : [],
     notes: isString(session.notes) ? session.notes : '',
     vocabulary: normalizeVocabulary(session.vocabulary),
+    annotations: normalizeAnnotations(session.annotations),
+    mood: SESSION_MOODS.includes(session.mood) ? session.mood : null,
     isDemo: Boolean(session.isDemo),
+    ...normalizeSessionProgress(session, progressKind),
   };
+}
+
+function normalizeSessionProgress(session, progressKind) {
+  const out = { progressKind, startPercent: null, endPercent: null, startPositionSeconds: null, endPositionSeconds: null, speed: null };
+  if (progressKind === PROGRESS_KINDS.PERCENT) {
+    out.startPercent = clampPercent(session.startPercent);
+    out.endPercent = Math.max(out.startPercent, clampPercent(session.endPercent ?? out.startPercent));
+  } else if (progressKind === PROGRESS_KINDS.AUDIO) {
+    out.startPositionSeconds = Math.min(MAX_AUDIO_SECONDS, Math.max(0, toInt(session.startPositionSeconds)));
+    out.endPositionSeconds = Math.min(MAX_AUDIO_SECONDS, Math.max(out.startPositionSeconds, toInt(session.endPositionSeconds, out.startPositionSeconds)));
+    out.speed = normalizeSpeed(session.speed);
+  }
+  return out;
 }
 
 /**

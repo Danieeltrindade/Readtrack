@@ -7,6 +7,19 @@
 import { fromInputDate, isAfterToday } from './date.js';
 import { MAX_SESSION_SECONDS } from './timer.js';
 import { MAX_RECORDED_SECONDS, calculateElapsedSeconds, parseDurationText } from './duration.js';
+import {
+  FORMAT_LIST,
+  MAX_AUDIO_SECONDS,
+  PROGRESS_KINDS,
+  formatAudioPosition,
+  getProgressKind,
+  getSessionKind,
+  normalizeSpeed,
+  parseAudioPosition,
+  parseHoursMinutes,
+  reachesEnd,
+} from './formats.js';
+import { normalizeAnnotations, validateAnnotations } from './annotations.js';
 
 export const BOOK_STATUSES = ['reading', 'finished', 'want-to-read'];
 
@@ -63,8 +76,12 @@ function result(errors, data) {
  * - Quero ler: datas de início e conclusão são ignoradas.
  * - Datas não podem estar no futuro; conclusão não pode ser antes do início.
  */
-export function validateBookForm(values, now = new Date(), { allowMissingTotal = false, allowMissingAuthor = false } = {}) {
+export function validateBookForm(values, now = new Date(), { allowMissingTotal: allowMissingTotalOption = false, allowMissingAuthor = false } = {}) {
   const errors = {};
+  // Formato (1.7.0): livros por porcentagem ou áudio não exigem páginas.
+  const formatInfo = validateBookFormat(values, errors);
+  const byPages = formatInfo.kind === PROGRESS_KINDS.PAGES;
+  const allowMissingTotal = allowMissingTotalOption || !byPages;
   const title = String(values.title ?? '').trim();
   const author = String(values.author ?? '').trim();
   const description = String(values.description ?? '').trim();
@@ -74,7 +91,7 @@ export function validateBookForm(values, now = new Date(), { allowMissingTotal =
   // a edição pode manter esses campos em branco — nada é inventado.
   const totalText = String(values.totalPages ?? '').trim();
   const totalPages = allowMissingTotal && totalText === '' ? null : parseInteger(values.totalPages);
-  let currentPage = values.currentPage === '' || values.currentPage === undefined ? 0 : parseInteger(values.currentPage);
+  let currentPage = !byPages || values.currentPage === '' || values.currentPage === undefined ? 0 : parseInteger(values.currentPage);
 
   if (!title) errors.title = 'Informe o título do livro.';
   else if (title.length > LIMITS.title) errors.title = `Use no máximo ${LIMITS.title} caracteres.`;
@@ -89,7 +106,7 @@ export function validateBookForm(values, now = new Date(), { allowMissingTotal =
   } else if (Number.isNaN(totalPages) || totalPages < 1) errors.totalPages = 'Informe um número inteiro de páginas maior que zero.';
   else if (totalPages > LIMITS.maxPages) errors.totalPages = `O máximo é ${LIMITS.maxPages.toLocaleString('pt-BR')} páginas.`;
 
-  if (status === 'finished' && !errors.totalPages && totalPages !== null) currentPage = totalPages;
+  if (status === 'finished' && !errors.totalPages && totalPages !== null && byPages) currentPage = totalPages;
   if (Number.isNaN(currentPage)) errors.currentPage = 'Informe um número inteiro (0 se ainda não começou).';
   else if (!errors.totalPages && totalPages !== null && currentPage > totalPages)
     errors.currentPage = `A página atual não pode passar de ${totalPages}.`;
@@ -138,9 +155,55 @@ export function validateBookForm(values, now = new Date(), { allowMissingTotal =
     currentPage,
     startedAt: startedAt ? startedAt.toISOString() : null,
     finishedAt: finishedAt ? finishedAt.toISOString() : null,
-    contentStartPage: Number.isInteger(contentStartPage) ? contentStartPage : null,
+    contentStartPage: byPages && Number.isInteger(contentStartPage) ? contentStartPage : null,
     ...finalReview.data,
+    ...formatInfo.data,
   });
+}
+
+/**
+ * Parte do formulário de livro que depende do formato:
+ * - e-book/PDF por %: progresso atual (0–100);
+ * - audiobook: duração total (obrigatória), posição atual, narrador e velocidade.
+ */
+function validateBookFormat(values, errors) {
+  const format = FORMAT_LIST.includes(values.format) ? values.format : 'print';
+  if (values.format !== undefined && !FORMAT_LIST.includes(values.format)) errors.format = 'Escolha o formato.';
+  const progressMode = format === 'digital' && values.progressMode === 'percent' ? 'percent' : 'pages';
+  const kind = getProgressKind({ format, progressMode });
+  const data = { format, progressMode, progressPercent: 0, audioDurationSeconds: null, audioPositionSeconds: 0, narrator: '', audioSpeed: null };
+
+  if (kind === PROGRESS_KINDS.PERCENT) {
+    const text = String(values.progressPercent ?? '').trim();
+    const percent = text === '' ? 0 : parseInteger(text.replace(/%$/, ''));
+    if (Number.isNaN(percent) || percent > 100) errors.progressPercent = 'Use um número inteiro de 0 a 100.';
+    else data.progressPercent = values.status === 'finished' ? 100 : percent;
+  }
+
+  if (kind === PROGRESS_KINDS.AUDIO) {
+    const duration = parseHoursMinutes(values.audioHours, values.audioMinutes);
+    if (duration === null) errors.audioDuration = 'Informe a duração total do audiobook.';
+    else if (Number.isNaN(duration) || duration < 60) errors.audioDuration = 'Use horas e minutos (ex.: 9 h 30 min).';
+    else if (duration > MAX_AUDIO_SECONDS) errors.audioDuration = 'O máximo é 100 horas.';
+    else data.audioDurationSeconds = duration;
+
+    const position = parseAudioPosition(values.audioPosition);
+    if (Number.isNaN(position)) errors.audioPosition = 'Use h:mm:ss (ex.: 2:15:00), mm:ss ou só os minutos.';
+    else if (position !== null && data.audioDurationSeconds && position > data.audioDurationSeconds)
+      errors.audioPosition = `A posição não pode passar da duração (${formatAudioPosition(data.audioDurationSeconds)}).`;
+    else data.audioPositionSeconds = position ?? 0;
+    if (values.status === 'finished' && data.audioDurationSeconds) data.audioPositionSeconds = data.audioDurationSeconds;
+
+    const narrator = String(values.narrator ?? '').trim();
+    if (narrator.length > LIMITS.author) errors.narrator = `Use no máximo ${LIMITS.author} caracteres.`;
+    else data.narrator = narrator;
+
+    const speedText = String(values.audioSpeed ?? '').trim().replace(',', '.').replace(/×|x$/i, '');
+    const speed = speedText === '' ? null : normalizeSpeed(speedText);
+    if (speedText !== '' && speed === null) errors.audioSpeed = 'Use uma velocidade entre 0,5× e 3×.';
+    else data.audioSpeed = speed;
+  }
+  return { kind, data };
 }
 
 /**
@@ -174,15 +237,21 @@ export function validateSessionEdit(values, { book, session, measuredSeconds }) 
   const errors = {};
   // Total não informado (livro importado): sem limite superior de página.
   const total = book?.totalPages ?? Infinity;
-  const startPage = parseInteger(values.startPage);
-  const endPage = parseInteger(values.endPage);
+  const kind = getSessionKind(session);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
+  const startPage = byPages ? parseInteger(values.startPage) : 0;
+  const endPage = byPages ? parseInteger(values.endPage) : 0;
   const notes = String(values.notes ?? '').trim();
 
-  if (Number.isNaN(startPage)) errors.startPage = 'Informe a página inicial (0 para o início).';
-  else if (startPage > total) errors.startPage = `O livro tem ${total} páginas.`;
-  if (Number.isNaN(endPage)) errors.endPage = 'Informe a página final.';
-  else if (endPage > total) errors.endPage = `O livro tem ${total} páginas.`;
-  else if (!errors.startPage && endPage <= startPage) errors.endPage = 'A página final precisa ser maior que a inicial.';
+  if (byPages) {
+    if (Number.isNaN(startPage)) errors.startPage = 'Informe a página inicial (0 para o início).';
+    else if (startPage > total) errors.startPage = `O livro tem ${total} páginas.`;
+    if (Number.isNaN(endPage)) errors.endPage = 'Informe a página final.';
+    else if (endPage > total) errors.endPage = `O livro tem ${total} páginas.`;
+    else if (!errors.startPage && endPage <= startPage) errors.endPage = 'A página final precisa ser maior que a inicial.';
+  }
+  const progress = byPages ? { progressKind: kind } : validateKindProgress(values, { book, kind, errors });
+  const notebook = validateNotebookValues(values, errors);
 
   const originalMinutes = Math.max(1, Math.round(session.durationSeconds / 60));
   const maxMinutes = Math.max(1, Math.ceil(measuredSeconds / 60));
@@ -195,11 +264,13 @@ export function validateSessionEdit(values, { book, session, measuredSeconds }) 
   if (notes.length > LIMITS.notes) errors.notes = `Use no máximo ${LIMITS.notes} caracteres.`;
 
   return result(errors, {
+    ...progress,
     startPage,
     endPage,
     pagesRead: Number.isNaN(startPage) || Number.isNaN(endPage) ? 0 : Math.max(0, endPage - startPage),
     durationSeconds,
     notes,
+    ...notebook,
   });
 }
 
@@ -215,16 +286,22 @@ export function validateSessionForm(values, { book, measuredSeconds }) {
   const errors = {};
   // Total não informado (livro importado): sem limite superior de página.
   const total = book?.totalPages ?? Infinity;
-  const startPage = parseInteger(values.startPage);
-  const endPage = parseInteger(values.endPage);
+  const kind = getProgressKind(book);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
+  const startPage = byPages ? parseInteger(values.startPage) : 0;
+  const endPage = byPages ? parseInteger(values.endPage) : 0;
   const notes = String(values.notes ?? '').trim();
 
-  if (Number.isNaN(startPage)) errors.startPage = 'Informe a página em que você começou (0 para o início).';
-  else if (startPage > total) errors.startPage = `O livro tem ${total} páginas.`;
+  if (byPages) {
+    if (Number.isNaN(startPage)) errors.startPage = 'Informe a página em que você começou (0 para o início).';
+    else if (startPage > total) errors.startPage = `O livro tem ${total} páginas.`;
 
-  if (Number.isNaN(endPage)) errors.endPage = 'Informe a página em que você parou.';
-  else if (endPage > total) errors.endPage = `O livro tem ${total} páginas.`;
-  else if (!errors.startPage && endPage <= startPage) errors.endPage = 'A página final precisa ser maior que a inicial.';
+    if (Number.isNaN(endPage)) errors.endPage = 'Informe a página em que você parou.';
+    else if (endPage > total) errors.endPage = `O livro tem ${total} páginas.`;
+    else if (!errors.startPage && endPage <= startPage) errors.endPage = 'A página final precisa ser maior que a inicial.';
+  }
+  const progress = byPages ? { progressKind: kind } : validateKindProgress(values, { book, kind, errors });
+  const notebook = validateNotebookValues(values, errors);
 
   let durationSeconds = Math.floor(measuredSeconds || 0);
   const maxMinutes = Math.max(1, Math.ceil(durationSeconds / 60));
@@ -246,12 +323,16 @@ export function validateSessionForm(values, { book, measuredSeconds }) {
   if (notes.length > LIMITS.notes) errors.notes = `Use no máximo ${LIMITS.notes} caracteres.`;
 
   return result(errors, {
+    ...progress,
     startPage,
     endPage,
     pagesRead: Number.isNaN(startPage) || Number.isNaN(endPage) ? 0 : Math.max(0, endPage - startPage),
     durationSeconds,
     notes,
-    markFinished: Boolean(values.markFinished) && endPage === total,
+    annotations: [],
+    mood: null,
+    ...notebook,
+    markFinished: Boolean(values.markFinished) && reachesEnd(book, { endPage, ...progress }),
   });
 }
 
@@ -287,13 +368,99 @@ export function validatePastBookForm(values, now = new Date()) {
   const review = validateFinalReview(values);
   Object.assign(errors, review.errors);
 
+  const format = FORMAT_LIST.includes(values.format) ? values.format : 'print';
+
   return result(errors, {
     title,
     author,
     totalPages: Number.isInteger(totalPages) ? totalPages : null,
     finishedAt: finishedAt ? finishedAt.toISOString() : null,
+    format,
     ...review.data,
   });
+}
+
+
+/* ---------- Progresso por porcentagem ou áudio (1.7.0) ---------- */
+
+/**
+ * Campos de progresso de uma sessão que não é por páginas.
+ * - percent: % inicial e final (0–100; a final não pode ser menor);
+ * - audio: posição inicial e final no áudio (a final precisa ser maior),
+ *   até a duração do audiobook; velocidade opcional.
+ * Devolve os campos da sessão com páginas zeradas (nada é deduzido).
+ */
+export function validateKindProgress(values, { book, kind, errors }) {
+  const data = {
+    progressKind: kind,
+    startPage: 0,
+    endPage: 0,
+    pagesRead: 0,
+    startPercent: null,
+    endPercent: null,
+    startPositionSeconds: null,
+    endPositionSeconds: null,
+    speed: null,
+  };
+  if (kind === PROGRESS_KINDS.PERCENT) {
+    const start = parseInteger(String(values.startPercent ?? '').replace(/%$/, ''));
+    const end = parseInteger(String(values.endPercent ?? '').replace(/%$/, ''));
+    if (Number.isNaN(start) || start > 100) errors.startPercent = 'Informe a % em que você começou (0 a 100).';
+    if (Number.isNaN(end) || end > 100) errors.endPercent = 'Informe a % em que você parou (0 a 100).';
+    else if (!errors.startPercent && end < start) errors.endPercent = 'A % final não pode ser menor que a inicial.';
+    data.startPercent = Number.isNaN(start) ? null : start;
+    data.endPercent = Number.isNaN(end) ? null : end;
+  } else if (kind === PROGRESS_KINDS.AUDIO) {
+    const total = book?.audioDurationSeconds ?? null;
+    const start = parseAudioPosition(values.startPosition);
+    const end = parseAudioPosition(values.endPosition);
+    const fmt = 'Use h:mm:ss (ex.: 1:20:00), mm:ss ou só os minutos.';
+    if (start === null) errors.startPosition = 'Informe a posição em que você começou (0:00 para o início).';
+    else if (Number.isNaN(start)) errors.startPosition = fmt;
+    else if (total && start > total) errors.startPosition = `O audiobook tem ${formatAudioPosition(total)}.`;
+    if (end === null) errors.endPosition = 'Informe a posição em que você parou.';
+    else if (Number.isNaN(end)) errors.endPosition = fmt;
+    else if (total && end > total) errors.endPosition = `O audiobook tem ${formatAudioPosition(total)}.`;
+    else if (!errors.startPosition && end <= start) errors.endPosition = 'A posição final precisa ser depois da inicial.';
+    data.startPositionSeconds = Number.isFinite(start) ? start : null;
+    data.endPositionSeconds = Number.isFinite(end) ? end : null;
+    const speedText = String(values.speed ?? '').trim().replace(',', '.').replace(/×|x$/i, '');
+    const speed = speedText === '' ? null : normalizeSpeed(speedText);
+    if (speedText !== '' && speed === null) errors.speed = 'Use uma velocidade entre 0,5× e 3×.';
+    data.speed = speed;
+  }
+  return data;
+}
+
+export const SESSION_MOODS = ['focused', 'ok', 'distracted', 'tired'];
+export const MOOD_LABELS = { focused: 'Concentrado', ok: 'Normal', distracted: 'Distraído', tired: 'Cansado' };
+
+/**
+ * Caderno da sessão (citações, ideias, dúvidas, vocabulário) e "como foi".
+ * Só devolve o que veio no formulário: campos ausentes ficam como estão.
+ */
+export function validateNotebookValues(values, errors) {
+  const out = {};
+  if (Array.isArray(values.annotations)) {
+    const annotations = normalizeAnnotations(values.annotations);
+    const error = validateAnnotations(annotations);
+    if (error) errors.annotations = error;
+    out.annotations = annotations;
+  }
+  if (Array.isArray(values.vocabulary)) {
+    const vocabulary = values.vocabulary
+      .filter((v) => v && String(v.term ?? '').trim())
+      .map((v) => {
+        const item = { term: String(v.term).trim(), meaning: String(v.meaning ?? '').trim() };
+        if (v.anchor) item.anchor = v.anchor;
+        return item;
+      });
+    const error = validateVocabulary(vocabulary);
+    if (error) errors.vocabularyText = error;
+    out.vocabulary = vocabulary;
+  }
+  if (values.mood !== undefined) out.mood = SESSION_MOODS.includes(values.mood) ? values.mood : null;
+  return out;
 }
 
 /* ---------- Vocabulário da sessão ---------- */
@@ -347,7 +514,11 @@ export function isSameSessionRecord(a, b) {
     a.bookId === b.bookId &&
     new Date(a.startedAt).getTime() === new Date(b.startedAt).getTime() &&
     a.startPage === b.startPage &&
-    a.endPage === b.endPage
+    a.endPage === b.endPage &&
+    (a.startPercent ?? null) === (b.startPercent ?? null) &&
+    (a.endPercent ?? null) === (b.endPercent ?? null) &&
+    (a.startPositionSeconds ?? null) === (b.startPositionSeconds ?? null) &&
+    (a.endPositionSeconds ?? null) === (b.endPositionSeconds ?? null)
   );
 }
 
@@ -360,7 +531,8 @@ export function isSameSessionRecord(a, b) {
 export function validateManualSession(values, { book, sessions = [], editingId = null, now = new Date() }) {
   const errors = {};
   const notes = String(values.notes ?? '').trim();
-  const vocabulary = parseVocabularyText(values.vocabularyText);
+  const vocabulary = Array.isArray(values.vocabulary) ? null : parseVocabularyText(values.vocabularyText);
+  const editingSession = editingId ? sessions.find((s) => s.id === editingId) ?? null : null;
 
   if (!book) errors.bookId = 'Escolha o livro desta sessão.';
   else if (book.addedAsRead) errors.bookId = 'Livros marcados como lidos antes do ReadTrack não recebem sessões.';
@@ -395,14 +567,21 @@ export function validateManualSession(values, { book, sessions = [], editingId =
     errors.endTime = 'Informe o horário de término (ou deixe a data igual à de início).';
   }
 
-  const startPage = parseInteger(values.startPage);
-  const endPage = parseInteger(values.endPage);
+  // Edição: vale o tipo da própria sessão; sessão nova: o formato do livro.
+  const kind = editingSession ? getSessionKind(editingSession) : getProgressKind(book);
+  const byPages = kind === PROGRESS_KINDS.PAGES;
+  const startPage = byPages ? parseInteger(values.startPage) : 0;
+  const endPage = byPages ? parseInteger(values.endPage) : 0;
   const total = book?.totalPages ?? null;
-  if (Number.isNaN(startPage) || startPage < 1) errors.startPage = 'Informe a primeira página lida (número impresso, a partir de 1).';
-  else if (total && startPage > total) errors.startPage = `O livro tem ${total} páginas.`;
-  if (Number.isNaN(endPage) || endPage < 1) errors.endPage = 'Informe a última página lida.';
-  else if (total && endPage > total) errors.endPage = `O livro tem ${total} páginas.`;
-  else if (!errors.startPage && endPage < startPage) errors.endPage = 'A última página não pode ser menor que a primeira.';
+  if (byPages) {
+    if (Number.isNaN(startPage) || startPage < 1) errors.startPage = 'Informe a primeira página lida (número impresso, a partir de 1).';
+    else if (total && startPage > total) errors.startPage = `O livro tem ${total} páginas.`;
+    if (Number.isNaN(endPage) || endPage < 1) errors.endPage = 'Informe a última página lida.';
+    else if (total && endPage > total) errors.endPage = `O livro tem ${total} páginas.`;
+    else if (!errors.startPage && endPage < startPage) errors.endPage = 'A última página não pode ser menor que a primeira.';
+  }
+  const progress = byPages ? { progressKind: kind } : validateKindProgress(values, { book, kind, errors });
+  const notebook = validateNotebookValues(values, errors);
 
   const duration = parseDurationText(values.duration);
   if (duration.error) errors.duration = duration.error;
@@ -410,19 +589,21 @@ export function validateManualSession(values, { book, sessions = [], editingId =
   else if (duration.seconds !== null && duration.seconds > MAX_RECORDED_SECONDS) errors.duration = 'Uma sessão pode ter no máximo 24 horas.';
 
   if (notes.length > LIMITS.notes) errors.notes = `Use no máximo ${LIMITS.notes} caracteres.`;
-  const vocabularyError = validateVocabulary(vocabulary);
+  const vocabularyError = vocabulary ? validateVocabulary(vocabulary) : null;
   if (vocabularyError) errors.vocabularyText = vocabularyError;
 
   const data = {
     bookId: book?.id ?? null,
     startedAt: startedAt ? startedAt.toISOString() : null,
     finishedAt: finishedAt ? finishedAt.toISOString() : null,
+    ...progress,
     startPage,
     endPage,
-    pagesRead: Number.isNaN(startPage) || Number.isNaN(endPage) ? 0 : Math.max(0, endPage - startPage + 1),
+    pagesRead: !byPages || Number.isNaN(startPage) || Number.isNaN(endPage) ? 0 : Math.max(0, endPage - startPage + 1),
     durationSeconds: duration.seconds ?? null,
     notes,
-    vocabulary,
+    ...(vocabulary ? { vocabulary } : {}),
+    ...notebook,
   };
 
   if (Object.keys(errors).length === 0 && sessions.some((s) => s.id !== editingId && isSameSessionRecord(s, data))) {

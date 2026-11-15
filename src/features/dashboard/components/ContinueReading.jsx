@@ -3,6 +3,8 @@ import { BookOpen, Library, Plus, Timer } from 'lucide-react';
 import { BookCover, Button, EmptyState, ProgressBar } from '../../../components/ui';
 import { usePaths } from '../../../hooks/useWorkspace.js';
 import { getBookProgress } from '../../../utils/stats.js';
+import { PROGRESS_KINDS, describeBookPosition, describeRemaining, getProgressKind, hasMeasurableProgress } from '../../../utils/formats.js';
+import { FormatBadge } from '../../../components/ui/FormatBadge.jsx';
 import { formatNumber, formatRelativeDay } from '../../../utils/format.js';
 
 /** Destaque do Dashboard: o livro que está sendo lido agora. */
@@ -31,7 +33,17 @@ export function ContinueReading({ book, lastSession, hasBooks, timerRunning = fa
   }
 
   const progress = getBookProgress(book);
-  const remaining = book.totalPages ? Math.max(0, book.totalPages - book.currentPage) : null;
+  const kind = getProgressKind(book);
+  const measurable = hasMeasurableProgress(book);
+  const remaining = kind === PROGRESS_KINDS.PAGES ? (book.totalPages ? Math.max(0, book.totalPages - book.currentPage) : null) : null;
+  const remainingText =
+    kind !== PROGRESS_KINDS.PAGES
+      ? describeRemaining(book) || (kind === PROGRESS_KINDS.AUDIO && !book.audioDurationSeconds ? 'Informe a duração do audiobook para ver quanto falta' : 'Fim alcançado')
+      : remaining === null
+        ? 'Informe o total de páginas no livro para ver quanto falta'
+        : remaining > 0
+          ? `Faltam ${formatNumber(remaining)} páginas`
+          : 'Última página alcançada';
 
   return (
     <section className="continue" aria-labelledby="continue-title">
@@ -47,20 +59,26 @@ export function ContinueReading({ book, lastSession, hasBooks, timerRunning = fa
         <h2 id="continue-title" className="continue__title">
           <Link to={ROUTES.book(book.id)}>{book.title}</Link>
         </h2>
-        <p className="continue__author">{book.author}</p>
+        <p className="continue__author">
+          {book.author} <FormatBadge format={book.format} />
+        </p>
 
         <div className="continue__progress">
           <div className="continue__progress-text">
             <span className="tabular">
-              Página <strong>{formatNumber(book.currentPage)}</strong>
-              {book.totalPages ? ` de ${formatNumber(book.totalPages)}` : ' · total não informado'}
+              {kind === PROGRESS_KINDS.PAGES ? (
+                <>
+                  Página <strong>{formatNumber(book.currentPage)}</strong>
+                  {book.totalPages ? ` de ${formatNumber(book.totalPages)}` : ' · total não informado'}
+                </>
+              ) : (
+                <strong>{describeBookPosition(book)}</strong>
+              )}
             </span>
-            {book.totalPages && <span className="continue__percent tabular">{progress}%</span>}
+            {measurable && <span className="continue__percent tabular">{progress}%</span>}
           </div>
-          {book.totalPages && <ProgressBar value={progress} label={`Progresso de ${book.title}`} />}
-          <p className="continue__remaining">
-            {remaining === null ? 'Informe o total de páginas no livro para ver quanto falta' : remaining > 0 ? `Faltam ${formatNumber(remaining)} páginas` : 'Última página alcançada'}
-          </p>
+          {measurable && <ProgressBar value={progress} label={`Progresso de ${book.title}`} />}
+          <p className="continue__remaining">{remainingText.charAt(0).toUpperCase() + remainingText.slice(1)}</p>
         </div>
 
         <div className="continue__actions">
