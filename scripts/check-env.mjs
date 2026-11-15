@@ -11,7 +11,7 @@ const required = process.argv.includes('--require');
 const config = readSupabaseConfig(process.env);
 
 if (config.configured) {
-  console.log(`Supabase configurado: ${config.url} (chave pública).`);
+  console.log(`Supabase configurado: ${config.url} (chave pública, schema "${config.schema}").`);
   process.exit(0);
 }
 if (config.problem) {

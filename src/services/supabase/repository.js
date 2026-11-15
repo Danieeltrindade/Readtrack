@@ -46,14 +46,20 @@ export function toRepositoryError(error, action = 'acessar o banco') {
   if (status === 401 || code === 'PGRST301' || code === 'PGRST303' || /JWT/i.test(text)) {
     return new RepositoryError('Sua sessão expirou. Entre novamente para continuar salvando.', { kind: 'auth', code, cause: error });
   }
+  if (code === 'PGRST106' || /schema must be one of/i.test(text)) {
+    return new RepositoryError(
+      'O schema do ReadTrack não está liberado na API do Supabase. Em Project Settings → Data API → Exposed schemas, acrescente o nome definido em VITE_SUPABASE_SCHEMA (ex.: readtrack).',
+      { kind: 'schema', code, cause: error },
+    );
+  }
   if (code === 'PGRST205' || code === '42P01' || code === 'PGRST204' || code === '42703' || code === 'PGRST202' || code === '42883') {
     return new RepositoryError(
-      'As tabelas do ReadTrack não foram encontradas ou estão desatualizadas no Supabase. Rode o arquivo supabase/schema.sql no SQL Editor.',
+      'As tabelas do ReadTrack não foram encontradas ou estão desatualizadas no Supabase. Rode no SQL Editor o arquivo supabase/schema.sql (ou supabase/compartilhado/readtrack.sql, se o projeto é dividido com outro app).',
       { kind: 'schema', code, cause: error },
     );
   }
   if (code === '42501') {
-    return new RepositoryError('O banco recusou a operação por falta de permissão (RLS). Confira as políticas em supabase/schema.sql.', {
+    return new RepositoryError('O banco recusou a operação por falta de permissão (RLS). Confira as políticas em supabase/schema.sql (ou supabase/compartilhado/readtrack.sql).', {
       kind: 'permission',
       code,
       cause: error,

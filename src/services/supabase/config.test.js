@@ -8,7 +8,7 @@ const jwt = (payload) =>
 const URL_OK = 'https://abcd.supabase.co';
 
 test('sem variáveis: modo local, sem erro', () => {
-  assert.deepEqual(readSupabaseConfig({}), { configured: false, url: null, key: null, problem: null });
+  assert.deepEqual(readSupabaseConfig({}), { configured: false, url: null, key: null, schema: 'public', problem: null });
 });
 
 test('aceita a chave publishable e a anon (JWT com role anon)', () => {
@@ -45,4 +45,22 @@ test('exige https, exceto em localhost', () => {
 test('variável faltando gera mensagem específica', () => {
   assert.match(readSupabaseConfig({ VITE_SUPABASE_URL: URL_OK }).problem, /VITE_SUPABASE_PUBLISHABLE_KEY/);
   assert.match(readSupabaseConfig({ VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_x' }).problem, /VITE_SUPABASE_URL/);
+});
+
+test('schema: public por padrão e readtrack no projeto compartilhado', () => {
+  const base = { VITE_SUPABASE_URL: URL_OK, VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc123' };
+  assert.equal(readSupabaseConfig(base).schema, 'public');
+  assert.equal(readSupabaseConfig({ ...base, VITE_SUPABASE_SCHEMA: '' }).schema, 'public');
+  const shared = readSupabaseConfig({ ...base, VITE_SUPABASE_SCHEMA: ' readtrack ' });
+  assert.equal(shared.configured, true);
+  assert.equal(shared.schema, 'readtrack');
+});
+
+test('schema com nome inválido é recusado com explicação', () => {
+  const base = { VITE_SUPABASE_URL: URL_OK, VITE_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_abc123' };
+  for (const bad of ['ReadTrack', 'read-track', 'readtrack; drop table x', '1abc']) {
+    const r = readSupabaseConfig({ ...base, VITE_SUPABASE_SCHEMA: bad });
+    assert.equal(r.configured, false, bad);
+    assert.match(r.problem, /VITE_SUPABASE_SCHEMA/);
+  }
 });

@@ -2,6 +2,9 @@
 //
 //   node scripts/build-history-sql.mjs <email-da-conta> <ano> <historico.json> <saida.sql>
 //
+// Projeto compartilhado com outro app? Rode com VITE_SUPABASE_SCHEMA=readtrack
+// para gerar o SQL apontando para o schema do ReadTrack.
+//
 // ALTERNATIVA AVANÇADA (rodada no SQL Editor, como administrador). O caminho
 // recomendado é importar pela própria tela, logado na conta. Guarde o
 // histórico e o SQL gerado FORA do repositório (veja .gitignore).
@@ -125,5 +128,8 @@ out('  left join public.reading_sessions s on s.user_id = b.user_id and s.book_i
 out(`  where lower(u.email) = lower(${q(email)}) and b.title in (${state.books.map((b) => q(b.title)).join(', ')})`);
 out('  group by b.title;');
 
-writeFileSync(output, lines.join('\n') + '\n');
+// Projeto compartilhado: as tabelas ficam no schema do ReadTrack (ex.: readtrack).
+const schema = String(process.env.VITE_SUPABASE_SCHEMA ?? '').trim() || 'public';
+if (!/^[a-z_][a-z0-9_]{0,62}$/.test(schema)) throw new Error('VITE_SUPABASE_SCHEMA inválido.');
+writeFileSync(output, lines.join('\n').replace(/\bpublic\./g, `${schema}.`) + '\n');
 console.log(`${output}: ${state.books.length} livros, ${plan.counts.sessions} sessões, ${plan.counts.vocabularyEntries} palavras de vocabulário, ano ${plan.year}.`);

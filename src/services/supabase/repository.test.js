@@ -84,6 +84,9 @@ test('erros viram mensagens claras por tipo', () => {
   assert.equal(toRepositoryError({ code: 'PGRST301', message: 'JWT expired' }).kind, 'auth');
   assert.equal(toRepositoryError({ code: '42P01', message: 'relation does not exist' }).kind, 'schema');
   assert.equal(toRepositoryError({ code: 'PGRST205', message: 'not in schema cache' }).kind, 'schema');
+  const notExposed = toRepositoryError({ code: 'PGRST106', message: 'The schema must be one of the following: public' });
+  assert.equal(notExposed.kind, 'schema');
+  assert.match(notExposed.message, /Exposed schemas/);
   assert.equal(toRepositoryError({ code: '42501', message: 'row-level security' }).kind, 'permission');
   assert.match(toRepositoryError({ code: '42P01' }).message, /schema\.sql/);
 });

@@ -12,7 +12,12 @@ export const ENV_KEYS = Object.freeze({
   url: 'VITE_SUPABASE_URL',
   key: 'VITE_SUPABASE_PUBLISHABLE_KEY',
   legacyKey: 'VITE_SUPABASE_ANON_KEY',
+  schema: 'VITE_SUPABASE_SCHEMA',
 });
+
+/** Schema padrão do Supabase. Num projeto compartilhado com outro app, use "readtrack". */
+export const DEFAULT_SCHEMA = 'public';
+const SCHEMA_NAME = /^[a-z_][a-z0-9_]{0,62}$/;
 
 /** Lê o "role" de um JWT sem validá-lo (só para detectar a chave errada). */
 function jwtRole(token) {
@@ -33,14 +38,17 @@ function isLocalHost(hostname) {
 
 /**
  * @param {Record<string, string|undefined>} env  normalmente import.meta.env
- * @returns {{ configured: boolean, url: string|null, key: string|null, problem: string|null }}
+ * @returns {{ configured: boolean, url: string|null, key: string|null, schema: string, problem: string|null }}
+ *   schema: onde ficam as tabelas do ReadTrack ("public" num projeto só dele;
+ *   "readtrack" num projeto compartilhado — veja supabase/compartilhado/)
  *   configured=false + problem=null  → variáveis ausentes (modo local normal)
  *   configured=false + problem=texto → variáveis presentes, porém inválidas/inseguras
  */
 export function readSupabaseConfig(env = {}) {
   const url = String(env[ENV_KEYS.url] ?? '').trim();
   const key = String(env[ENV_KEYS.key] ?? env[ENV_KEYS.legacyKey] ?? '').trim();
-  const off = (problem = null) => ({ configured: false, url: null, key: null, problem });
+  const schema = String(env[ENV_KEYS.schema] ?? '').trim() || DEFAULT_SCHEMA;
+  const off = (problem = null) => ({ configured: false, url: null, key: null, schema, problem });
 
   if (!url && !key) return off();
   if (!url) return off(`Falta a variável ${ENV_KEYS.url}.`);
@@ -65,5 +73,9 @@ export function readSupabaseConfig(env = {}) {
   const looksPublic = key.startsWith('sb_publishable_') || jwtRole(key) === 'anon';
   if (!looksPublic) return off('A chave do Supabase não parece ser uma chave pública (publishable ou anon).');
 
-  return { configured: true, url: parsed.origin, key, problem: null };
+  if (!SCHEMA_NAME.test(schema)) {
+    return off(`${ENV_KEYS.schema} deve ser um nome simples em minúsculas, como "readtrack" (ou ficar vazia para usar "public").`);
+  }
+
+  return { configured: true, url: parsed.origin, key, schema, problem: null };
 }

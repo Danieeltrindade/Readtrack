@@ -29,7 +29,8 @@
     "check:env": "node scripts/check-env.mjs",
     "check:dist": "node scripts/check-dist.mjs dist",
     "history:backup": "node scripts/build-history-backup.mjs",
-    "history:sql": "node scripts/build-history-sql.mjs"
+    "history:sql": "node scripts/build-history-sql.mjs",
+    "sql:compartilhado": "node scripts/build-shared-sql.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.75.0",

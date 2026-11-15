@@ -29,6 +29,7 @@ Outras rotas: `/login`, `/register`, `/forgot-password` (pedir link de nova senh
 - [Tutorial: do zero ao site publicado](#tutorial-do-zero-ao-site-publicado)
   - [Etapa A — Preparar o ambiente](#etapa-a--preparar-o-ambiente)
   - [Etapa B — Configurar o Supabase](#etapa-b--configurar-o-supabase)
+  - [Etapa B2 — Alternativa: dividir o projeto do Supabase com outro app](#etapa-b2--alternativa-dividir-o-projeto-do-supabase-com-outro-app)
   - [Etapa C — Configurar o GitHub](#etapa-c--configurar-o-github)
   - [Etapa D — Publicar](#etapa-d--publicar)
   - [Etapa E — Testar a demonstração](#etapa-e--testar-a-demonstração)
@@ -223,6 +224,40 @@ npm run check:env    # confere as variáveis do Supabase (recusa chave secreta)
    O app pede que a confirmação de cadastro volte para `…/app` e a recuperação de senha para `…/reset-password`; o `**` libera os dois.
 9. **Testar o banco e o login localmente.** Com o `.env.local` preenchido, rode `npm run dev`, abra `http://localhost:5173/register`, crie uma conta, confirme pelo e-mail (se ligado) e verifique que a área pessoal abre **vazia**. No Supabase, **Authentication → Users** mostra o usuário e **Table Editor → profiles** o perfil criado automaticamente.
 
+### Etapa B2 — Alternativa: dividir o projeto do Supabase com outro app
+
+O plano gratuito do Supabase permite **2 projetos ativos**. Se os dois já estão em uso (por exemplo, pelo FitTrack), o ReadTrack pode morar **dentro de um deles**, num schema separado chamado `readtrack`. Faça isto **no lugar** dos itens 4 e 5 da Etapa B; o resto da Etapa B continua valendo.
+
+**Como fica:**
+
+| | Outro app (ex.: FitTrack) | ReadTrack |
+| --- | --- | --- |
+| Tabelas | schema `public` (não muda nada) | schema `readtrack` |
+| Gatilho de cadastro | `on_auth_user_created` (o dele) | `readtrack_on_auth_user_created` (separado) |
+| Contas (Supabase Auth) | as **mesmas** nos dois apps | as **mesmas** nos dois apps |
+| Dados | só do outro app | só do ReadTrack |
+
+> ⚠️ **Não rode o `supabase/schema.sql` num projeto que já tem outro app.** Ele usa o schema `public` e recriaria a tabela `profiles`, a função `handle_new_user` e o gatilho `on_auth_user_created`, que o FitTrack também usa, e o quebraria. Use o arquivo abaixo, feito para isso.
+
+1. **Abra o projeto do outro app** no Supabase (ex.: o do FitTrack).
+2. **Aplicar o SQL do projeto compartilhado.** Em **SQL Editor → New query**, cole **o arquivo inteiro** [`supabase/compartilhado/readtrack.sql`](supabase/compartilhado/readtrack.sql) e clique em **Run**. Ele cria o schema `readtrack` com todas as tabelas, regras, políticas RLS e a função de importação do ReadTrack, e **não cria, altera nem apaga nada** do schema `public`. Pode ser rodado de novo sem apagar dados. Mensagens `NOTICE … skipping` são normais.
+3. **Revisar o RLS.** Rode [`supabase/compartilhado/rls_check.sql`](supabase/compartilhado/rls_check.sql). A última linha deve ser **`RLS OK: 35 verificações`**.
+4. **Liberar o schema na API.** Abra as configurações da **Data API** (**Project Settings → Data API**; em versões mais novas do painel, **Integrations → Data API → Settings**). Em **Exposed schemas**, **acrescente** `readtrack`, **sem tirar** o `public`, e salve. Sem isso, o ReadTrack mostra o aviso *"O schema do ReadTrack não está liberado na API do Supabase"*.
+5. **Variáveis de ambiente.** No `.env.local` do ReadTrack, use a **Project URL** e a **chave pública do projeto do outro app** e acrescente:
+
+   ```bash
+   VITE_SUPABASE_SCHEMA=readtrack
+   ```
+
+   No GitHub (Etapa C, item 5), crie também a variável `VITE_SUPABASE_SCHEMA` com o valor `readtrack`.
+6. **URLs de redirecionamento.** Em **Authentication → URL Configuration**, **mantenha** o **Site URL** do outro app e só **acrescente** as Redirect URLs do ReadTrack (Etapa B, item 8). O ReadTrack informa em cada e-mail para onde o link deve voltar, então confirmação de cadastro e nova senha voltam para o app certo.
+7. **E-mails e contas.** Os modelos de e-mail (**Authentication → Emails → Templates**) são os mesmos para os dois apps. Se o texto cita o nome de um só app, deixe-o neutro. Quem já tem conta no outro app entra no ReadTrack com o **mesmo e-mail e senha**, e começa com a área do ReadTrack vazia.
+8. **Trazer seus dados.** Entre no ReadTrack e use **Configurações → Restaurar backup** com o seu arquivo de backup (Etapa F). Se os dados só existem no projeto antigo do ReadTrack, que está pausado: reative-o por um momento (para isso, pause outro projeto, já que o limite é de 2 ativos), exporte o backup pelo app e pause-o de novo.
+
+**Espaço:** o banco do plano gratuito (500 MB) passa a ser dividido entre os dois apps. Para uso pessoal, sobra bastante.
+
+**Atualizações futuras:** quando o `supabase/schema.sql` mudar numa versão nova, rode `npm run sql:compartilhado` (o projeto já traz o arquivo atualizado) e aplique o `supabase/compartilhado/readtrack.sql` novo no SQL Editor.
+
 ### Etapa C — Configurar o GitHub
 
 1. **Criar o repositório.** Em [github.com/new](https://github.com/new), crie um repositório (ex.: `readtrack`). O nome dele faz parte do endereço do site.
@@ -246,7 +281,8 @@ npm run check:env    # confere as variáveis do Supabase (recusa chave secreta)
 4. **Ligar o GitHub Pages pelo Actions.** No repositório: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
 5. **Variáveis do build.** **Settings → Secrets and variables → Actions → aba Variables → New repository variable**:
    - `VITE_SUPABASE_URL` = a Project URL;
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` = a publishable key (ou `VITE_SUPABASE_ANON_KEY` = a anon key).
+   - `VITE_SUPABASE_PUBLISHABLE_KEY` = a publishable key (ou `VITE_SUPABASE_ANON_KEY` = a anon key);
+   - só se o projeto do Supabase for compartilhado com outro app (Etapa B2): `VITE_SUPABASE_SCHEMA` = `readtrack`.
 
    São valores públicos por natureza (vão para o JavaScript do site); a segurança vem da RLS. Se preferir, cadastre-os como *Secrets* com os mesmos nomes: o workflow aceita os dois. **Nunca** cadastre a chave `service_role`/secret.
 6. **Permissões.** O workflow já declara o que precisa (`pages: write`, `id-token: write`). Se a publicação for recusada por permissão, confira **Settings → Actions → General → Workflow permissions** e o ambiente `github-pages` em **Settings → Environments** (ele deve permitir a branch `main`).
@@ -298,14 +334,14 @@ Tem um **histórico anotado à mão** (formato `readtrack-history-import`)? Use 
 3. Crie um commit: `git add .`, `git status` (confira que nenhum arquivo pessoal entrou) e `git commit -m "descrição da mudança"`.
 4. Envie: `git push`.
 5. Acompanhe a publicação na aba **Actions**. Se um passo falhar, abra o log, corrija e envie de novo — o site anterior continua no ar enquanto isso.
-6. Se a mudança alterar o banco, rode o `supabase/schema.sql` novo no SQL Editor **antes** de publicar.
+6. Se a mudança alterar o banco, rode o `supabase/schema.sql` novo no SQL Editor **antes** de publicar (num projeto compartilhado, rode `npm run sql:compartilhado` e use o `supabase/compartilhado/readtrack.sql`).
 7. Faça backups periódicos (**Exportar JSON**), principalmente antes de importar ou de grandes mudanças.
 
 ---
 
 ## Banco de dados e segurança
 
-O SQL completo está em [`supabase/schema.sql`](supabase/schema.sql): tabelas, chaves estrangeiras, índices, regras de integridade, gatilhos, políticas RLS e a função `import_backup`. É aditivo e idempotente (testado aplicando-o duas vezes sobre um banco da 1.5.0 com dados: nada foi apagado ou alterado).
+O SQL completo está em [`supabase/schema.sql`](supabase/schema.sql) (num projeto compartilhado com outro app, use a versão gerada a partir dele, [`supabase/compartilhado/readtrack.sql`](supabase/compartilhado/readtrack.sql), com as mesmas tabelas e regras no schema `readtrack`; veja a Etapa B2): tabelas, chaves estrangeiras, índices, regras de integridade, gatilhos, políticas RLS e a função `import_backup`. É aditivo e idempotente (testado aplicando-o duas vezes sobre um banco da 1.5.0 com dados: nada foi apagado ou alterado).
 
 | Tabela | Conteúdo | Chave |
 | --- | --- | --- |
@@ -411,7 +447,8 @@ O dicionário foi removido na v1.3. Bancos antigos ainda podem ter a tabela `dic
 ## Testes
 
 - `npm test` roda os testes unitários (`node:test`): datas e períodos, sessões que atravessam a meia-noite, ritmo, sequências, metas, conquistas (inclusive os alvos novos da 1.6.0 e a limpeza dos ids antigos), cronômetro, validação e migração de dados, importação/exportação, os dados fictícios da demonstração (válidos, nada no futuro, conquistas e metas com progresso) e o isolamento da área da demonstração, caminhos das rotas (inclusive proteção contra redirecionamento para outro site), CSP e o mapeamento da importação atômica. Um dos testes só roda com o computador no horário de Brasília.
-- `supabase/tests/rls_check.sql` testa as políticas direto no banco (35 verificações, com duas contas simuladas).
+- `supabase/tests/rls_check.sql` testa as políticas direto no banco (35 verificações, com duas contas simuladas). `supabase/compartilhado/rls_check.sql` faz o mesmo no schema `readtrack`.
+- Projeto compartilhado: um teste confere que o `supabase/compartilhado/readtrack.sql` não referencia o schema `public`, usa um gatilho de cadastro com nome próprio e está em dia com o `schema.sql`. Ele também foi aplicado duas vezes num Supabase local que já tinha as migrações do FitTrack. Funções, gatilhos, políticas, colunas, privilégios e regras do `public` e do `storage` ficaram idênticos antes e depois, e os fluxos do app passaram usando o schema `readtrack`.
 - Testes de interface no navegador (página inicial, rotas diretas, demonstração, cadastro, login, logout, confirmação de e-mail, recuperação de senha, duas contas, importação e exportação, responsividade) foram executados durante o desenvolvimento com Playwright contra um Supabase local (Auth + PostgREST + PostgreSQL), com scripts **fora deste repositório**.
 
 ## Limitações conhecidas
