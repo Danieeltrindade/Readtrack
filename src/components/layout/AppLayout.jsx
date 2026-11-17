@@ -2,6 +2,7 @@ import { Outlet, useLocation } from 'react-router';
 import { useEffect, useRef } from 'react';
 import { Sidebar } from './Sidebar.jsx';
 import { MobileHeader } from './MobileHeader.jsx';
+import { StreakButton } from './StreakButton.jsx';
 import { MobileNav } from './MobileNav.jsx';
 import { StorageNotice } from './StorageNotice.jsx';
 import { BackendNotice } from './BackendNotice.jsx';
@@ -50,6 +51,9 @@ export function AppLayout() {
         <BackendNotice />
         <StorageNotice />
         <ActiveSessionBar />
+        <div className="app-topbar">
+          <StreakButton />
+        </div>
         <ErrorBoundary resetKey={pathname}>
           <Outlet />
         </ErrorBoundary>

@@ -1172,77 +1172,297 @@
   color: var(--color-text-muted);
 }
 
-.sessions-card__day {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* Linha do tempo das sessões */
+.tl,
+.tl__items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.sessions-card__day-head {
+.tl {
+  display: grid;
+  gap: 6px;
+}
+
+.tl__day {
+  display: grid;
+  gap: 10px;
+}
+
+.tl__day-head {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
-  color: var(--color-text-faint);
+  gap: 10px;
+}
+
+.tl__badge {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--color-accent-text);
   font-size: var(--text-xs);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.sessions-card__item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--line);
-  color: var(--color-text);
-  text-decoration: none;
+.tl__day-sum {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
-.sessions-card__item:hover .sessions-card__title {
-  color: var(--color-accent-text);
+.tl__items {
+  display: grid;
+  gap: 10px;
+  margin-left: 13px;
+  padding: 2px 0 14px 22px;
+  border-left: 2px solid var(--line-strong);
 }
 
-.sessions-card__icon {
-  flex: none;
+.tl__day:last-child .tl__items {
+  border-left-color: transparent;
+  padding-bottom: 0;
+}
+
+.tl__item {
+  position: relative;
+  min-width: 0;
+}
+
+.tl__day,
+.tl__items,
+.tl__card,
+.tl__card > * {
+  min-width: 0;
+}
+
+.tl__node {
+  position: absolute;
+  top: 14px;
+  left: -37px;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--fc) 14%, transparent);
-  color: var(--fc-text);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--fc);
+  color: #fff;
+  box-shadow:
+    0 0 0 4px var(--color-surface),
+    0 0 14px color-mix(in srgb, var(--fc) 60%, transparent);
 }
 
-.sessions-card__main {
-  flex: 1 1 auto;
-  min-width: 0;
+.tl__card {
   display: grid;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  text-decoration: none;
+  transition: border-color var(--duration-fast) ease;
 }
 
-.sessions-card__title {
+.tl__card:hover {
+  border-color: color-mix(in srgb, var(--fc) 45%, transparent);
+}
+
+.tl__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tl__title {
+  min-width: 0;
   overflow: hidden;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.sessions-card__range,
-.sessions-card__notes {
+.tl__dur {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 800;
+}
+
+.tl__meta {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
 }
 
-.sessions-card__side {
-  flex: none;
-  display: grid;
-  text-align: right;
+.tl__bar {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--line-strong);
+  overflow: hidden;
 }
 
-.sessions-card__duration {
+.tl__bar span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: var(--radius-full);
+  background: var(--fc);
+}
+
+.tl__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tl__pills:empty {
+  display: none;
+}
+
+.tl__pill {
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-text) 7%, transparent);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.tl__pill--pages {
+  background: color-mix(in srgb, var(--fc) 16%, transparent);
+  color: var(--fc-text);
+}
+
+.tl__pill--warn {
+  background: color-mix(in srgb, var(--brass-500) 18%, transparent);
+  color: var(--brass-400);
+}
+
+/* "Seus números" em blocos */
+.numbers {
+  display: grid;
+  gap: 14px;
+}
+
+.numbers__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ntile {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--color-surface);
+}
+
+.ntile__k {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.ntile__v {
+  font-family: var(--font-display);
+  font-size: 1.625rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.ntile__v small {
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.ntile__s {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+.ntile--big {
+  grid-column: span 2;
+  border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 16%, var(--color-surface)), var(--color-surface) 60%);
+}
+
+.ntile--big .ntile__v {
+  font-size: 2.75rem;
+}
+
+.ntile__spark {
+  width: 100%;
+  height: 70px;
+  margin-top: 6px;
+}
+
+.ntile__months {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-text-faint);
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.ntile__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 34px;
+  margin-top: 4px;
+}
+
+.ntile__bars span {
+  flex: 1;
+  border-radius: 4px 4px 2px 2px;
+  background: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.ntile__spines {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 38px;
+  margin-top: 4px;
+}
+
+.ntile__spines span {
+  width: 9px;
+  border-radius: 2px;
+  box-shadow: inset -2px 0 0 rgba(0, 0, 0, 0.25);
+}
+
+.ntile__spines .is-reading {
+  height: 60%;
+  opacity: 0.6;
+  outline: 1px dashed var(--color-text-faint);
+  outline-offset: 1px;
+}
+
+.ntile--flame {
+  border-color: rgba(255, 138, 61, 0.22);
+  background: linear-gradient(160deg, rgba(255, 138, 61, 0.12), var(--color-surface) 65%);
+}
+
+.ntile--flame.is-lit .ntile__v {
+  color: #ff9a4d;
 }
 
 /* ---------- Animações (decorativas) ---------- */

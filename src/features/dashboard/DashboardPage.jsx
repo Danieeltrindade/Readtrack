@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
-import { Flame, Plus, Timer } from 'lucide-react';
+import { Plus, Timer } from 'lucide-react';
 import { Button } from '../../components/ui';
 import { usePaths } from '../../hooks/useWorkspace.js';
 import { useData } from '../../hooks/useData.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import { getDashboardSummary } from '../../utils/stats.js';
-import { formatLongDate, getGreeting, pluralize } from '../../utils/format.js';
+import { formatLongDate, getGreeting } from '../../utils/format.js';
 import { evaluateAchievements } from '../../utils/achievements.js';
 import { collectNotebook, countByType } from '../../utils/annotations.js';
 import { getCurrentWeekByFormat, getNextAchievement, getReadingBooks, sumWeekByFormat } from '../../utils/dashboard.js';
@@ -45,7 +45,6 @@ export default function DashboardPage() {
 
   const now = new Date();
   const greeting = settings.userName ? `${getGreeting(now)}, ${settings.userName}` : getGreeting(now);
-  const streak = summary.streak;
 
   return (
     <div className="page dashboard">
@@ -53,12 +52,6 @@ export default function DashboardPage() {
         <div className="dashboard__hello">
           <div className="dashboard__meta">
             <span className="dashboard__date">{formatLongDate(now)}</span>
-            {streak.current > 0 && (
-              <span className={`dashboard__streak ${streak.readToday ? 'is-lit' : ''}`}>
-                <Flame size={13} aria-hidden="true" />
-                {pluralize(streak.current, 'dia seguido', 'dias seguidos')}
-              </span>
-            )}
           </div>
           <h1>{greeting}</h1>
         </div>
@@ -93,7 +86,7 @@ export default function DashboardPage() {
 
       <div className="dashboard__bottom">
         <SessionsByDay sessions={summary.recentSessions} booksById={booksById} />
-        <ReadingLedger totals={summary.totals} pace={summary.pace} streak={summary.streak} counts={summary.counts} />
+        <ReadingLedger totals={summary.totals} pace={summary.pace} streak={summary.streak} counts={summary.counts} ledger={ledger} sessions={sessions} books={books} />
       </div>
 
       <ManualSessionDialog open={manualFor !== null} onClose={() => setManualFor(null)} bookId={manualFor || undefined} />

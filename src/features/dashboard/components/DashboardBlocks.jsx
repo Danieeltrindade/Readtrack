@@ -4,7 +4,7 @@ import { FormatIcon } from '../../../components/ui';
 import { usePaths } from '../../../hooks/useWorkspace.js';
 import { FORMAT_LABELS, FORMAT_LIST, describeSessionProgress, getSessionKind, normalizeFormat } from '../../../utils/formats.js';
 import { NOTEBOOK_SINGULAR, formatEntryAnchor } from '../../../utils/annotations.js';
-import { formatDuration, formatNumber, formatRelativeDay, formatTime, formatWeekdayShort, pluralize } from '../../../utils/format.js';
+import { formatDuration, formatNumber, formatRelativeDay, formatSessionPeriod, formatWeekdayShort, pluralize } from '../../../utils/format.js';
 import { getDurationDivergence } from '../../../utils/duration.js';
 
 const RING_R = 50;
@@ -251,9 +251,10 @@ export function SessionsByDay({ sessions, booksById }) {
   for (const s of sessions) {
     const label = formatRelativeDay(s.startedAt);
     let g = groups.find((x) => x.label === label);
-    if (!g) groups.push((g = { label, items: [], seconds: 0 }));
+    if (!g) groups.push((g = { label, items: [], seconds: 0, pages: 0 }));
     g.items.push(s);
     g.seconds += Number(s.durationSeconds) || 0;
+    g.pages += Number(s.pagesRead) || 0;
   }
   return (
     <section className="sessions-card" aria-labelledby="sessions-title">
@@ -264,41 +265,67 @@ export function SessionsByDay({ sessions, booksById }) {
       {groups.length === 0 ? (
         <p className="sessions-card__empty">Nenhuma sessão ainda. Use o cronômetro ou registre uma leitura feita fora dele.</p>
       ) : (
-        groups.map((g) => (
-          <div key={g.label} className="sessions-card__day">
-            <div className="sessions-card__day-head">
-              <span>{g.label}</span>
-              <span>{g.seconds ? formatDuration(g.seconds) : ''}</span>
-            </div>
-            {g.items.map((s) => {
-              const book = booksById.get(s.bookId);
-              if (!book) return null;
-              const f = normalizeFormat(book.format);
-              const kind = getSessionKind(s);
-              const notes = (s.notes ? 1 : 0) + (s.vocabulary?.length ?? 0) + (s.annotations?.length ?? 0);
-              return (
-                <Link key={s.id} to={ROUTES.book(book.id)} className="sessions-card__item" style={{ '--fc': `var(--format-${f})`, '--fc-text': `var(--format-${f}-text)` }}>
-                  <span className="sessions-card__icon">
-                    <FormatIcon format={f} size={18} />
-                  </span>
-                  <span className="sessions-card__main">
-                    <span className="sessions-card__title">{book.title}</span>
-                    <span className="sessions-card__range tabular">
-                      {formatTime(s.startedAt)} · {kind === 'pages' ? `p. ${s.startPage} → ${s.endPage}` : describeSessionProgress(s)}
-                    </span>
-                  </span>
-                  <span className="sessions-card__side">
-                    <span className="sessions-card__duration">
-                      {s.durationSeconds === null || s.durationSeconds === undefined ? '—' : formatDuration(s.durationSeconds)}
-                      {getDurationDivergence(s) ? ' *' : ''}
-                    </span>
-                    <span className="sessions-card__notes">{notes ? pluralize(notes, 'nota') : kind === 'pages' ? `+${s.pagesRead} p.` : ''}</span>
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        ))
+        <ol className="tl">
+          {groups.map((g) => (
+            <li key={g.label} className="tl__day">
+              <div className="tl__day-head">
+                <span className="tl__badge">{g.label}</span>
+                <span className="tl__day-sum tabular">
+                  {[g.seconds ? formatDuration(g.seconds) : '', g.pages ? `${formatNumber(g.pages)} p.` : ''].filter(Boolean).join(' · ')}
+                </span>
+              </div>
+              <ul className="tl__items">
+                {g.items.map((s) => {
+                  const book = booksById.get(s.bookId);
+                  if (!book) return null;
+                  const f = normalizeFormat(book.format);
+                  const kind = getSessionKind(s);
+                  const words = s.vocabulary?.length ?? 0;
+                  const notes = (s.notes ? 1 : 0) + (s.annotations?.length ?? 0);
+                  const total = Number(book.totalPages) || 0;
+                  const showBar = kind === 'pages' && total > 0 && s.endPage >= s.startPage;
+                  const from = showBar ? Math.min(100, Math.max(0, ((s.startPage - 1) / total) * 100)) : 0;
+                  const to = showBar ? Math.min(100, Math.max(from + 1, (s.endPage / total) * 100)) : 0;
+                  const divergent = getDurationDivergence(s);
+                  return (
+                    <li key={s.id} className="tl__item" style={{ '--fc': `var(--format-${f})`, '--fc-text': `var(--format-${f}-text)` }}>
+                      <span className="tl__node" aria-hidden="true">
+                        <FormatIcon format={f} size={13} strokeWidth={2.4} />
+                      </span>
+                      <Link to={ROUTES.book(book.id)} className="tl__card">
+                        <span className="tl__row">
+                          <span className="tl__title">{book.title}</span>
+                          <span className="tl__dur tabular">
+                            {s.durationSeconds === null || s.durationSeconds === undefined ? '—' : formatDuration(s.durationSeconds)}
+                            {divergent ? ' *' : ''}
+                          </span>
+                        </span>
+                        <span className="tl__meta tabular">
+                          {formatSessionPeriod(s)} · {kind === 'pages' ? `p. ${s.startPage} → ${s.endPage}` : describeSessionProgress(s)}
+                        </span>
+                        {showBar && (
+                          <span className="tl__bar" aria-hidden="true">
+                            <span style={{ left: `${from}%`, width: `${to - from}%` }} />
+                          </span>
+                        )}
+                        <span className="tl__pills">
+                          {kind === 'pages' && s.pagesRead > 0 && <span className="tl__pill tl__pill--pages">+{formatNumber(s.pagesRead)} p.</span>}
+                          {notes > 0 && <span className="tl__pill">{pluralize(notes, 'nota')}</span>}
+                          {words > 0 && <span className="tl__pill">{pluralize(words, 'palavra')}</span>}
+                          {divergent && (
+                            <span className="tl__pill tl__pill--warn" title="O horário anotado e a duração não batem; nada foi alterado.">
+                              * horário ≠ duração
+                            </span>
+                          )}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))}
+        </ol>
       )}
     </section>
   );

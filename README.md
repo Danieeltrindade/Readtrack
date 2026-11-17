@@ -49,7 +49,7 @@ Outras rotas: `/login`, `/register`, `/forgot-password` (pedir link de nova senh
 - **Audiobook:** duração total, posição atual (h:mm:ss), narrador e velocidade habitual. Cada sessão registra a posição inicial e final no áudio e a velocidade.
 - Porcentagem e áudio **não viram páginas**: essas sessões contam no tempo, nas sessões, na sequência, nas metas de minutos e nos livros concluídos, mas não nas páginas nem na meta de páginas. Nenhuma página é deduzida.
 - **Caderno da sessão** ao finalizar (e ao editar ou registrar uma sessão manual): abas **Resumo**, **Citações** (trecho + comentário), **Vocabulário** (palavra + significado), **Ideias** e **Dúvidas**, cada anotação com a página, a % ou o momento do áudio. O que ficou digitado sem "Adicionar" também é salvo. "Como foi?" (concentrado, normal, distraído, cansado) é opcional.
-- **Caderno** (menu): tudo o que foi anotado, de todos os livros, com busca, filtro por tipo e por livro, visão em lista ou por livro, dúvidas marcadas como resolvidas, "Relembre" (uma citação salva) e **exportação em Markdown**.
+- **Caderno** (menu): tudo o que foi anotado, de todos os livros, com busca, filtro por tipo e por livro, visão em lista ou por livro, dúvidas marcadas como resolvidas, "Relembre" (uma citação salva) e **exportação em Markdown**. Cada cartão tem a própria altura (colunas) e textos longos mostram 5 linhas com "Ler tudo". Uma palavra anotada mais de uma vez (mesma grafia, ignorando maiúsculas e acentos) aparece num cartão só, com "anotada N×", o significado mais recente e "Ver as N anotações" (data, página e livro de cada uma) — nada é apagado. O filtro **Vocabulário** vira um glossário em ordem alfabética, com atalho por letra.
 - Biblioteca com filtro por formato; selos de formato no livro, no cronômetro e na biblioteca.
 - Com sessões registradas, o jeito de medir o progresso de um livro não muda (páginas, % ou áudio), para não misturar medidas.
 
@@ -97,9 +97,12 @@ Outras rotas: `/login`, `/register`, `/forgot-password` (pedir link de nova senh
 - **Importar histórico** (Histórico ou Configurações → "Importar histórico"): escolhe um arquivo de histórico, mostra a pré-visualização (ano, livros, sessões, notas, vocabulário, duplicatas, divergências) e só grava ao confirmar.
 
 **Dashboard, estatísticas, metas e conquistas**
-- Dashboard com livro atual, totais (páginas, tempo, sessões, livros concluídos, sequência), metas do dia e da semana, gráfico dos últimos 7 dias, sessões recentes e atalhos.
+- Dashboard com livro atual, metas do dia e da semana, gráfico dos últimos 7 dias, **sessões recentes em linha do tempo** (por dia, com o trecho lido sobre o total do livro) e **Seus números** em blocos (páginas com a curva dos últimos meses, tempo, sessões por dia da semana, livros e sequência).
+- **Chama da sequência no topo** (celular e computador): toque para ver os dias lidos na semana, a última leitura e o recorde.
 - Estatísticas por **dia, semana, mês, 3 meses ou histórico total**, com navegação entre períodos e comparação com o período anterior equivalente: valor atual, barras "agora × antes", diferença absoluta e percentual (sem "+100%" quando antes não houve leitura: aparece "Novo registro"). No histórico total aparecem totais acumulados, médias e o melhor mês.
-- Gráficos de páginas, tempo e **Evolução** com os mesmos cinco períodos, todos com tabela acessível.
+- **Comparação de quaisquer períodos:** o período da página × o anterior, "Esta semana", "Este mês", "Últimos 30 dias" ou **Personalizado** (duas faixas de datas A e B), com frase-resumo, barras A × B e variação de páginas, tempo, sessões, dias com leitura e média por dia.
+- **Destaques** em blocos: melhor dia do período, recorde diário, sequência, livros concluídos, horário em que você costuma ler e ritmo.
+- Gráficos de páginas e tempo (com tabela acessível) e **Evolução** em três visões: páginas **acumuladas** no período (livros concluídos marcados), **calendário** do mês colorido pelos minutos lidos e as **últimas 12 semanas** com a média.
 - Metas pessoais configuráveis (minutos por dia, páginas por semana) com estados: concluída, em andamento, não começou e não configurada.
 - **Conquistas por níveis** em 7 categorias, com anel de progresso até o próximo nível ("974 / 1.000 páginas"), trilha de níveis e data real de cada desbloqueio. Recalculadas a partir dos registros a cada sessão adicionada, editada ou excluída.
 

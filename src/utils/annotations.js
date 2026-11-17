@@ -234,6 +234,58 @@ export function countByType(entries) {
   return out;
 }
 
+/** Chave de uma palavra para agrupar: sem acentos, minúsculas e sem espaços sobrando. */
+export function wordKey(term) {
+  return String(term ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Junta as palavras anotadas mais de uma vez num cartão só. A entrada fica
+ * na posição da anotação mais recente, com `history` (todas, da mais nova
+ * para a mais antiga) e o significado mais recente que não esteja vazio.
+ * Os outros tipos passam sem mudança. Nada é apagado: só a exibição muda.
+ */
+export function groupWordEntries(entries) {
+  const groups = new Map();
+  const out = [];
+  for (const e of entries) {
+    if (e.type !== 'word') {
+      out.push(e);
+      continue;
+    }
+    const k = wordKey(e.text);
+    const group = groups.get(k);
+    if (group) {
+      group.history.push(e);
+      if (!group.note && e.note) group.note = e.note;
+      continue;
+    }
+    const first = { ...e, key: `word:${k}`, history: [e] };
+    groups.set(k, first);
+    out.push(first);
+  }
+  return out;
+}
+
+/** Palavras (já agrupadas) por letra inicial, em ordem alfabética. */
+export function buildGlossary(entries) {
+  const words = entries.filter((e) => e.type === 'word').sort((a, b) => a.text.localeCompare(b.text, 'pt-BR', { sensitivity: 'base' }));
+  const letters = [];
+  for (const w of words) {
+    const letter = wordKey(w.text).charAt(0).toUpperCase() || '#';
+    const key = /[A-Z]/.test(letter) ? letter : '#';
+    let g = letters.at(-1);
+    if (!g || g.letter !== key) letters.push((g = { letter: key, words: [] }));
+    g.words.push(w);
+  }
+  return letters;
+}
+
 /** Marca/desmarca uma dúvida como resolvida. Devolve a sessão nova ou null. */
 export function toggleQuestionResolved(session, annotationId) {
   const list = session.annotations ?? [];

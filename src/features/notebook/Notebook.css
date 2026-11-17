@@ -176,23 +176,25 @@
 }
 
 /* Cartões */
+/* Colunas: cada cartão fica com a própria altura (um resumo longo não estica os vizinhos). */
 .notebook-page__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
-  gap: var(--space-3);
+  columns: 300px auto;
+  column-gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .notebook-page__grid > li {
-  display: grid;
+  display: block;
+  margin-bottom: var(--space-3);
+  break-inside: avoid;
 }
 
 .note-card {
   --kind-color: var(--note-summary);
   display: grid;
-  grid-template-rows: auto 1fr auto auto;
+  align-content: start;
   gap: var(--space-2);
   padding: var(--space-4);
   border: 1px solid var(--line);
@@ -314,6 +316,147 @@
 .note-card__open:hover,
 .note-card__resolve:hover {
   color: var(--color-text);
+}
+
+/* Texto longo: 5 linhas e "Ler tudo" */
+.note-card__text.is-clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+}
+
+.note-card__more {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-accent-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.note-card__more:hover {
+  text-decoration: underline;
+}
+
+/* Palavra anotada mais de uma vez */
+.note-card__times {
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--kind-color) 18%, transparent);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.note-card__dots {
+  display: flex;
+  gap: 4px;
+}
+
+.note-card__dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--kind-color);
+  opacity: 0.75;
+}
+
+.note-card__dots span:first-child {
+  opacity: 1;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--kind-color) 30%, transparent);
+}
+
+.note-card__history {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 0 0;
+  border-top: 1px dashed var(--line-strong);
+  list-style: none;
+}
+
+.note-card__history li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  align-items: center;
+}
+
+.note-card__history-when {
+  grid-column: 1;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+.note-card__history-text {
+  grid-column: 1;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.note-card__history-text em {
+  color: var(--color-text-faint);
+}
+
+.note-card__history .note-card__open {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 28px;
+  font-size: var(--text-xs);
+}
+
+/* Glossário (filtro Vocabulário) */
+.glossary {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.glossary__letters {
+  position: sticky;
+  top: calc(var(--mobile-header-height, 0px) + 4px);
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.glossary__letters a {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.glossary__letters a:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--color-text);
+}
+
+.glossary__group {
+  display: grid;
+  gap: var(--space-3);
+  scroll-margin-top: calc(var(--mobile-header-height, 0px) + 64px);
+}
+
+.glossary__letter {
+  margin: 0;
+  color: var(--note-word);
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  line-height: 1;
 }
 
 /* Por livro */

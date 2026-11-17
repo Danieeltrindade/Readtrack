@@ -197,3 +197,24 @@ test('normalização: anotações inválidas descartadas, ids repetidos ajustado
   assert.equal(s.progressKind, 'pages');
   assert.equal(s.pagesRead, 5);
 });
+
+test('Caderno: palavras repetidas viram um cartão só, com o histórico', async () => {
+  const { groupWordEntries, buildGlossary, wordKey, countByType } = await import('./annotations.js');
+  const book = { id: 'b', title: 'Livro' };
+  const w = (key, text, note, date) => ({ key, type: 'word', text, note, date, book, bookId: 'b' });
+  const entries = [
+    w('3', 'Enlevado', '', '2026-10-20T08:00:00'),
+    { key: 's', type: 'summary', text: 'Resumo', note: '', date: '2026-10-19T08:00:00', book, bookId: 'b' },
+    w('2', 'Fitar', 'olhar fixamente', '2026-10-15T08:00:00'),
+    w('1', 'enlevado ', 'encantado', '2026-10-08T08:00:00'),
+  ];
+  assert.equal(wordKey('  Eriçarem '), 'ericarem');
+  const grouped = groupWordEntries(entries);
+  assert.equal(grouped.length, 3);
+  assert.equal(grouped[0].history.length, 2);
+  assert.equal(grouped[0].text, 'Enlevado');
+  assert.equal(grouped[0].note, 'encantado', 'usa o significado mais recente que não está vazio');
+  assert.equal(countByType(grouped).word, 2);
+  assert.deepEqual(buildGlossary(grouped).map((g) => `${g.letter}:${g.words.map((x) => x.text).join(',')}`), ['E:Enlevado', 'F:Fitar']);
+  assert.equal(entries.length, 4, 'não altera a lista original');
+});

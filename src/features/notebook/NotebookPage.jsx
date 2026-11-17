@@ -10,16 +10,18 @@ import {
   NOTEBOOK_LABELS,
   NOTEBOOK_SINGULAR,
   NOTEBOOK_TABS,
+  buildGlossary,
   collectNotebook,
   countByType,
   filterNotebook,
   formatEntryAnchor,
   groupNotebookByBook,
+  groupWordEntries,
   notebookToMarkdown,
   pickQuote,
 } from '../../utils/annotations.js';
 import { FORMAT_LABELS } from '../../utils/formats.js';
-import { formatRelativeDay } from '../../utils/format.js';
+import { formatRelativeDay, formatShortDate } from '../../utils/format.js';
 import { downloadText } from '../../utils/download.js';
 import { SessionDialog } from '../history/components/SessionDialog.jsx';
 import '../../components/ui/Form.css';
@@ -60,8 +62,11 @@ export default function NotebookPage() {
     );
 
   const all = useMemo(() => collectNotebook({ books, sessions }), [books, sessions]);
-  const counts = useMemo(() => countByType(filterNotebook(all, { bookId })), [all, bookId]);
+  // Palavras anotadas mais de uma vez aparecem num cartão só (contagens também).
+  const counts = useMemo(() => countByType(groupWordEntries(filterNotebook(all, { bookId }))), [all, bookId]);
   const entries = useMemo(() => filterNotebook(all, { type, bookId, query, onlyOpen }), [all, type, bookId, query, onlyOpen]);
+  const cards = useMemo(() => groupWordEntries(entries), [entries]);
+  const glossary = type === 'word' && view === 'list' ? buildGlossary(cards) : null;
   const bookOptions = useMemo(() => groupNotebookByBook(all).map((g) => ({ id: g.book.id, title: g.book.title, count: g.entries.length })), [all]);
   const quote = pickQuote(all, seed);
   const openSession = sessions.find((s) => s.id === openId) ?? null;
@@ -175,7 +180,11 @@ export default function NotebookPage() {
       </div>
 
       <p className="notebook-page__summary" aria-live="polite">
-        {entries.length === 0 ? 'Nenhuma anotação com esses filtros.' : `${entries.length} ${entries.length === 1 ? 'anotação' : 'anotações'}`}
+        {cards.length === 0
+          ? 'Nenhuma anotação com esses filtros.'
+          : type === 'word'
+            ? `${cards.length} ${cards.length === 1 ? 'palavra' : 'palavras'}${entries.length > cards.length ? ` (${entries.length} anotações)` : ''}`
+            : `${cards.length} ${cards.length === 1 ? 'anotação' : 'anotações'}`}
         {hasFilters && (
           <>
             {' · '}
@@ -186,37 +195,62 @@ export default function NotebookPage() {
         )}
       </p>
 
-      {view === 'list' ? (
-        <ul className="notebook-page__grid">
-          {entries.map((entry) => (
-            <li key={entry.key}>
-              <EntryCard entry={entry} onOpen={() => setOpenId(entry.sessionId)} onToggle={() => actions.toggleQuestion(entry.sessionId, entry.annotationId)} showBook />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="notebook-page__groups">
-          {groupNotebookByBook(entries).map((group) => (
-            <section key={group.book.id} className="notebook-page__group" aria-label={group.book.title}>
-              <header className="notebook-page__group-head">
-                <h2>{group.book.title}</h2>
-                <FormatBadge format={group.book.format} />
-                <span className="notebook-page__group-count">
-                  {group.entries.length} {group.entries.length === 1 ? 'anotação' : 'anotações'}
-                </span>
-                <Link to={ROUTES.book(group.book.id)} className="notebook-page__group-link">
-                  Abrir livro
-                </Link>
-              </header>
+      {glossary ? (
+        <div className="glossary">
+          <nav className="glossary__letters" aria-label="Letras">
+            {glossary.map((g) => (
+              <a key={g.letter} href={`#letra-${g.letter}`} onClick={(e) => (e.preventDefault(), document.getElementById(`letra-${g.letter}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))}>
+                {g.letter}
+              </a>
+            ))}
+          </nav>
+          {glossary.map((g) => (
+            <section key={g.letter} id={`letra-${g.letter}`} className="glossary__group" aria-label={`Letra ${g.letter}`}>
+              <h2 className="glossary__letter">{g.letter}</h2>
               <ul className="notebook-page__grid">
-                {group.entries.map((entry) => (
+                {g.words.map((entry) => (
                   <li key={entry.key}>
-                    <EntryCard entry={entry} onOpen={() => setOpenId(entry.sessionId)} onToggle={() => actions.toggleQuestion(entry.sessionId, entry.annotationId)} />
+                    <EntryCard entry={entry} onOpen={setOpenId} showBook />
                   </li>
                 ))}
               </ul>
             </section>
           ))}
+        </div>
+      ) : view === 'list' ? (
+        <ul className="notebook-page__grid">
+          {cards.map((entry) => (
+            <li key={entry.key}>
+              <EntryCard entry={entry} onOpen={setOpenId} onToggle={() => actions.toggleQuestion(entry.sessionId, entry.annotationId)} showBook />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="notebook-page__groups">
+          {groupNotebookByBook(entries).map((group) => {
+            const groupCards = groupWordEntries(group.entries);
+            return (
+              <section key={group.book.id} className="notebook-page__group" aria-label={group.book.title}>
+                <header className="notebook-page__group-head">
+                  <h2>{group.book.title}</h2>
+                  <FormatBadge format={group.book.format} />
+                  <span className="notebook-page__group-count">
+                    {groupCards.length} {groupCards.length === 1 ? 'anotação' : 'anotações'}
+                  </span>
+                  <Link to={ROUTES.book(group.book.id)} className="notebook-page__group-link">
+                    Abrir livro
+                  </Link>
+                </header>
+                <ul className="notebook-page__grid">
+                  {groupCards.map((entry) => (
+                    <li key={entry.key}>
+                      <EntryCard entry={entry} onOpen={setOpenId} onToggle={() => actions.toggleQuestion(entry.sessionId, entry.annotationId)} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
         </div>
       )}
 
@@ -225,17 +259,67 @@ export default function NotebookPage() {
   );
 }
 
+const CLAMP_CHARS = 280;
+
 function EntryCard({ entry, onOpen, onToggle, showBook = false }) {
+  const [expanded, setExpanded] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const Icon = TYPE_ICONS[entry.type];
   const anchor = formatEntryAnchor(entry);
+  const history = entry.history ?? null;
+  const repeated = history && history.length > 1;
+  const long = entry.type !== 'word' && (entry.text.length > CLAMP_CHARS || entry.text.split('\n').length > 5);
+  const text = entry.type === 'quote' ? `“${entry.text}”` : entry.text;
   return (
-    <article className={`note-card note-card--${entry.type} ${entry.resolved ? 'is-resolved' : ''}`}>
+    <article className={`note-card note-card--${entry.type} ${entry.resolved ? 'is-resolved' : ''} ${repeated ? 'is-repeated' : ''}`}>
       <p className="note-card__kind">
         <Icon size={14} aria-hidden="true" /> {NOTEBOOK_SINGULAR[entry.type]}
+        {repeated && (
+          <span className="note-card__times" title={`Você anotou esta palavra ${history.length} vezes`}>
+            ↻ anotada {history.length}×
+          </span>
+        )}
         <span className="note-card__when">{formatRelativeDay(entry.date)}</span>
       </p>
-      <p className="note-card__text">{entry.type === 'quote' ? `“${entry.text}”` : entry.text}</p>
+      <p className={`note-card__text ${long && !expanded ? 'is-clamped' : ''}`}>{text}</p>
+      {long && (
+        <button type="button" className="note-card__more" aria-expanded={expanded} onClick={() => setExpanded((v) => !v)}>
+          {expanded ? 'Mostrar menos' : 'Ler tudo'}
+        </button>
+      )}
       {entry.note && <p className="note-card__extra">{entry.note}</p>}
+      {repeated && (
+        <>
+          <span className="note-card__dots" aria-hidden="true">
+            {history.map((h) => (
+              <span key={h.key} />
+            ))}
+          </span>
+          <button type="button" className="note-card__more" aria-expanded={historyOpen} onClick={() => setHistoryOpen((v) => !v)}>
+            {historyOpen ? 'Esconder anotações' : `Ver as ${history.length} anotações`}
+          </button>
+          {historyOpen && (
+            <ol className="note-card__history">
+              {history.map((h) => {
+                const where = formatEntryAnchor(h);
+                return (
+                  <li key={h.key}>
+                    <span className="note-card__history-when">
+                      {formatShortDate(h.date)}
+                      {where ? ` · ${where}` : ''}
+                      {h.bookId !== entry.bookId || showBook ? ` · ${h.book.title}` : ''}
+                    </span>
+                    <span className="note-card__history-text">{h.note || <em>sem significado anotado</em>}</span>
+                    <button type="button" className="note-card__open" onClick={() => onOpen(h.sessionId)}>
+                      Ver sessão
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </>
+      )}
       <footer className="note-card__foot">
         <span className="note-card__where">
           {showBook && <span className="note-card__book">{entry.book.title}</span>}
@@ -247,7 +331,7 @@ function EntryCard({ entry, onOpen, onToggle, showBook = false }) {
               {entry.resolved ? 'Resolvida' : 'Marcar como resolvida'}
             </button>
           )}
-          <button type="button" className="note-card__open" onClick={onOpen}>
+          <button type="button" className="note-card__open" onClick={() => onOpen(entry.sessionId)}>
             Ver sessão
           </button>
         </span>
